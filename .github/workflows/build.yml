@@ -1,0 +1,58 @@
+name: Build .NET Framework Desktop
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+  pull-requests: read
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    runs-on: windows-latest
+
+    env:
+      Solution_Name: uploader\uploader.sln
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    # Add MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v2
+
+    # Setup NuGet for restoring packages (legacy packages.config format)
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    # Restore NuGet packages
+    - name: Restore NuGet packages
+      run: nuget restore $env:Solution_Name
+
+    # Build the solution
+    - name: Build the solution
+      run: msbuild $env:Solution_Name /p:Configuration=$env:Configuration /p:Platform=x64 /m
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # Upload build artifacts
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-x64-${{ matrix.configuration }}
+        path: uploader\uploader\bin\x64\${{ matrix.configuration }}\
+        if-no-files-found: error
