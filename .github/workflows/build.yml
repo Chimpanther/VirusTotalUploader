@@ -49,3 +49,4 @@ jobs:
       with:
         name: build-x64-${{ matrix.configuration }}
         path: uploader\uploader\bin\x64\${{ matrix.configuration }}\
+        if-no-files-found: error
