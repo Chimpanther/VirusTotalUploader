@@ -118,10 +118,21 @@ namespace uploader
 
         private void OpenUrlSafe(string url)
         {
-            if (Uri.TryCreate(url, UriKind.Absolute, out Uri uri) &&
-                (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
+            {
+                return;
+            }
+
+            if (uri.Scheme == Uri.UriSchemeHttp)
             {
                 Process.Start(url);
+                return;
+            }
+
+            if (uri.Scheme == Uri.UriSchemeHttps)
+            {
+                Process.Start(url);
+                return;
             }
         }
 
