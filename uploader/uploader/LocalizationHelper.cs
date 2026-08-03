@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,7 +12,7 @@ namespace uploader
     {
         private const string LocalFolder = "local";
         public static LocalizationBase Base;
-        
+
         public static string[] GetLanguages()
         {
             return Directory.Exists(LocalFolder) ? Directory.GetFiles(LocalFolder) : new []{ "" };
@@ -24,9 +24,9 @@ namespace uploader
             Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
         }
 
-        public static void Update()
+        public static void Update(string settingsFilePath = null)
         {
-            var settings = Settings.LoadSettings();
+            var settings = Settings.LoadSettings(settingsFilePath);
             if (!string.IsNullOrEmpty(settings.Language))
             {
                 Load(settings.Language);

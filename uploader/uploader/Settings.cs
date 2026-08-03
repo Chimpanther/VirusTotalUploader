@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,7 +25,7 @@ namespace uploader
             {
                 settings.Language = "";
             }
-            
+
             var serialized = JsonConvert.SerializeObject(settings);
             var file = GetSettingsFilename();
 
@@ -37,9 +37,9 @@ namespace uploader
             LocalizationHelper.Update();
         }
 
-        public static Settings LoadSettings()
+        public static Settings LoadSettings(string path = null)
         {
-            var file = GetSettingsFilename();
+            var file = path ?? GetSettingsFilename();
 
             if (!File.Exists(file))
                 return new Settings();
