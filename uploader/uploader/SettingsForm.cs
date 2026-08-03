@@ -65,7 +65,8 @@ namespace uploader
                 return;
             }
             
-            var args = $"/e, /select, \"{Settings.GetSettingsFilename()}\"";
+            var safePath = file.Replace("\"", "\\\"");
+            var args = $"/e, /select, \"{safePath}\"";
 
             var info = new ProcessStartInfo {FileName = "explorer", Arguments = args};
             Process.Start(info);
