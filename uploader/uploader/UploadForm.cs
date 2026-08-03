@@ -108,62 +108,133 @@ namespace uploader
                 _filesToUpload = new List<string> { _path };
             }
 
-            foreach (var file in _filesToUpload)
+            for (int i = 0; i < _filesToUpload.Count; i += 4)
             {
-                UploadFile(file);
+                var chunk = _filesToUpload.Skip(i).Take(4).ToList();
+                UploadFiles(chunk);
             }
 
             Finish(true);
         }
 
-        private void UploadFile(string fullPath)
+        private void UploadFiles(List<string> files)
         {
-            if (!File.Exists(fullPath))
+            var validFiles = files.Where(f =>
             {
-                DisplayError($"File {fullPath} does not exist.");
-                return;
-            }
+                if (!File.Exists(f))
+                {
+                    DisplayError($"File {f} does not exist.");
+                    return false;
+                }
+                return true;
+            }).ToList();
 
-            var fileName = Path.GetFileName(fullPath);
-            ChangeStatus($"Checking {fileName}...");
+            if (validFiles.Count == 0) return;
+
+            ChangeStatus($"Checking {validFiles.Count} files...");
+            var hashes = validFiles.Select(f => Utils.GetMD5(f)).ToList();
+            var resourceString = string.Join(",", hashes);
+
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetMD5(fullPath));
+            reportRequest.AddParameter("resource", resourceString);
 
             var reportResponse = _client.Execute(reportRequest);
             var reportContent = reportResponse.Content;
-            dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
+
+            if (string.IsNullOrEmpty(reportContent))
+            {
+                foreach (var file in validFiles) ScanFile(file);
+                return;
+            }
+
+            Newtonsoft.Json.Linq.JToken parsedToken;
+            try
+            {
+                parsedToken = Newtonsoft.Json.Linq.JToken.Parse(reportContent);
+            }
+            catch (Newtonsoft.Json.JsonReaderException)
+            {
+                foreach (var file in validFiles) ScanFile(file);
+                return;
+            }
+
+            List<dynamic> reports = new List<dynamic>();
+            if (parsedToken is Newtonsoft.Json.Linq.JArray)
+            {
+                foreach (var r in parsedToken) reports.Add((dynamic)r);
+            }
+            else
+            {
+                reports.Add((dynamic)parsedToken);
+            }
+
+            for (int j = 0; j < validFiles.Count; j++)
+            {
+                var file = validFiles[j];
+                var report = reports.Count > j ? reports[j] : null;
+
+                bool hasPermalink = false;
+                if (report != null)
+                {
+                    try
+                    {
+                        var reportLink = report.permalink.ToString();
+                        Process.Start(reportLink);
+                        hasPermalink = true;
+                    }
+                    catch (RuntimeBinderException)
+                    {
+                    }
+                }
+
+                if (!hasPermalink)
+                {
+                    ScanFile(file);
+                }
+            }
+        }
+
+        private void ScanFile(string fullPath)
+        {
+            var fileName = Path.GetFileName(fullPath);
+            ChangeStatus($"Uploading {fileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _settings.ApiKey);
+            scanRequest.AddFile("file", fullPath);
+
+            var scanResponse = _client.Execute(scanRequest);
+            var scanContent = scanResponse.Content;
+
+            if (string.IsNullOrEmpty(scanContent))
+            {
+                DisplayError($"Failed to get link for {fileName}. Empty response from VirusTotal.");
+                return;
+            }
+
+            dynamic scanJson;
+            try
+            {
+                scanJson = JsonConvert.DeserializeObject(scanContent);
+            }
+            catch (Newtonsoft.Json.JsonReaderException ex)
+            {
+                DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+                return;
+            }
 
             try
             {
-                var reportLink = reportJson.permalink.ToString();
-                Process.Start(reportLink);
+                string sha256 = scanJson.sha256.ToString();
+                string scanId = scanJson.scan_id.ToString();
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+
+                Process.Start(scanLink);
             }
-            catch (RuntimeBinderException)
+            catch (Exception ex)
             {
-                // Json does not contain permalink which means it's a new file (or the request failed)
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
-
-                var scanResponse = _client.Execute(scanRequest);
-                var scanContent = scanResponse.Content;
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
-
-                try
-                {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
-
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-
-                    Process.Start(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
-                }
+                DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
             }
         }
 
