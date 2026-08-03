@@ -29,17 +29,20 @@ namespace uploader
 
             string originalKey = settings.ApiKey;
 
-            if (!string.IsNullOrEmpty(settings.ApiKey) && Environment.OSVersion.Platform == PlatformID.Win32NT)
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
             {
-                try
+                if (!string.IsNullOrEmpty(settings.ApiKey))
                 {
-                    var bytes = Encoding.UTF8.GetBytes(settings.ApiKey);
-                    var encrypted = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
-                    settings.ApiKey = Convert.ToBase64String(encrypted);
-                }
-                catch
-                {
-                    // Ignore encryption errors and fall back
+                    try
+                    {
+                        var bytes = Encoding.UTF8.GetBytes(settings.ApiKey);
+                        var encrypted = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
+                        settings.ApiKey = Convert.ToBase64String(encrypted);
+                    }
+                    catch
+                    {
+                        // Ignore encryption errors and fall back
+                    }
                 }
             }
 
@@ -66,21 +69,29 @@ namespace uploader
             var context = File.ReadAllText(file);
             var settings = JsonConvert.DeserializeObject<Settings>(context);
 
-            if (settings != null && !string.IsNullOrEmpty(settings.ApiKey) && Environment.OSVersion.Platform == PlatformID.Win32NT)
+            if (settings == null)
             {
-                try
+                return new Settings();
+            }
+
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                if (!string.IsNullOrEmpty(settings.ApiKey))
                 {
-                    var encryptedBytes = Convert.FromBase64String(settings.ApiKey);
-                    var decryptedBytes = ProtectedData.Unprotect(encryptedBytes, null, DataProtectionScope.CurrentUser);
-                    settings.ApiKey = Encoding.UTF8.GetString(decryptedBytes);
-                }
-                catch
-                {
-                    // Failed to decrypt, could be plaintext or invalid
+                    try
+                    {
+                        var encryptedBytes = Convert.FromBase64String(settings.ApiKey);
+                        var decryptedBytes = ProtectedData.Unprotect(encryptedBytes, null, DataProtectionScope.CurrentUser);
+                        settings.ApiKey = Encoding.UTF8.GetString(decryptedBytes);
+                    }
+                    catch
+                    {
+                        // Failed to decrypt, could be plaintext or invalid
+                    }
                 }
             }
 
-            return settings ?? new Settings();
+            return settings;
         }
     }
 }
