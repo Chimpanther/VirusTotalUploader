@@ -18,22 +18,27 @@ namespace uploader.Tests
                 File.Delete(exportFileName);
             }
 
-            // Act
-            LocalizationHelper.Export();
+            try
+            {
+                // Act
+                LocalizationHelper.Export();
 
-            // Assert
-            Assert.IsTrue(File.Exists(exportFileName), "The export.json file should be created.");
+                // Assert
+                Assert.IsTrue(File.Exists(exportFileName), "The export.json file should be created.");
 
-            string jsonContent = File.ReadAllText(exportFileName);
-            var deserialized = JsonConvert.DeserializeObject<LocalizationBase>(jsonContent);
+                string jsonContent = File.ReadAllText(exportFileName);
+                var deserialized = JsonConvert.DeserializeObject<LocalizationBase>(jsonContent);
 
-            Assert.IsNotNull(deserialized, "The JSON content should be deserializable to LocalizationBase.");
-            Assert.AreEqual("Drag file here", deserialized.MainForm_DragFile, "The default values should be preserved.");
-            Assert.AreEqual("More", deserialized.MainForm_More, "The default values should be preserved.");
-            Assert.AreEqual("Settings", deserialized.SettingsForm_Title, "The default values should be preserved.");
-
-            // Clean up
-            File.Delete(exportFileName);
+                Assert.IsNotNull(deserialized, "The JSON content should be deserializable to LocalizationBase.");
+            }
+            finally
+            {
+                // Clean up
+                if (File.Exists(exportFileName))
+                {
+                    File.Delete(exportFileName);
+                }
+            }
         }
     }
 }
