@@ -117,6 +117,21 @@ namespace uploader
             Finish(true);
         }
 
+
+        private class VTReport
+        {
+            [JsonProperty("permalink")]
+            public string Permalink { get; set; }
+        }
+
+        private class VTScanResponse
+        {
+            [JsonProperty("sha256")]
+            public string Sha256 { get; set; }
+            [JsonProperty("scan_id")]
+            public string ScanId { get; set; }
+        }
+
         private void UploadFiles(List<string> files)
         {
             var validFiles = files.Where(f =>
@@ -150,7 +165,7 @@ namespace uploader
             }
         }
 
-        private List<Newtonsoft.Json.Linq.JToken> ParseReports(string content)
+        private List<VTReport> ParseReports(string content)
         {
             if (string.IsNullOrEmpty(content))
                 return null;
@@ -158,34 +173,38 @@ namespace uploader
             try
             {
                 var parsedToken = Newtonsoft.Json.Linq.JToken.Parse(content);
-                var reports = new List<Newtonsoft.Json.Linq.JToken>();
+                var reports = new List<VTReport>();
                 if (parsedToken is Newtonsoft.Json.Linq.JArray)
                 {
-                    foreach (var r in parsedToken) reports.Add(r);
+                    foreach (var r in parsedToken)
+                    {
+                        reports.Add(r.ToObject<VTReport>());
+                    }
                 }
                 else
                 {
-                    reports.Add(parsedToken);
+                    reports.Add(parsedToken.ToObject<VTReport>());
                 }
                 return reports;
             }
-            catch (Newtonsoft.Json.JsonReaderException)
+            catch (Newtonsoft.Json.JsonException)
             {
                 return null;
             }
         }
 
-        private void ProcessReport(string file, Newtonsoft.Json.Linq.JToken report)
+        private void ProcessReport(string file, VTReport report)
         {
             bool hasPermalink = false;
-            if (report != null)
+            if (report != null && !string.IsNullOrEmpty(report.Permalink))
             {
-                var permalinkToken = report["permalink"];
-                if (permalinkToken != null)
+                try
                 {
-                    var reportLink = permalinkToken.ToString();
-                    Process.Start(reportLink);
+                    Process.Start(report.Permalink);
                     hasPermalink = true;
+                }
+                catch (Exception)
+                {
                 }
             }
 
@@ -212,12 +231,12 @@ namespace uploader
                 return;
             }
 
-            Newtonsoft.Json.Linq.JObject scanJson;
+            VTScanResponse scanJson;
             try
             {
-                scanJson = Newtonsoft.Json.Linq.JObject.Parse(scanContent);
+                scanJson = JsonConvert.DeserializeObject<VTScanResponse>(scanContent);
             }
-            catch (Newtonsoft.Json.JsonReaderException ex)
+            catch (Newtonsoft.Json.JsonException ex)
             {
                 DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
                 return;
@@ -225,15 +244,9 @@ namespace uploader
 
             try
             {
-                var shaToken = scanJson["sha256"];
-                var idToken = scanJson["scan_id"];
-                if (shaToken != null && idToken != null)
+                if (scanJson != null && !string.IsNullOrEmpty(scanJson.Sha256) && !string.IsNullOrEmpty(scanJson.ScanId))
                 {
-                    string sha256 = shaToken.ToString();
-                    string scanId = idToken.ToString();
-
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-
+                    var scanLink = $"https://www.virustotal.com/gui/file/{scanJson.Sha256}/detection/{scanJson.ScanId}";
                     Process.Start(scanLink);
                 }
                 else
