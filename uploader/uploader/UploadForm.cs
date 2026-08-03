@@ -150,7 +150,7 @@ namespace uploader
             }
         }
 
-        private List<dynamic> ParseReports(string content)
+        private List<Newtonsoft.Json.Linq.JToken> ParseReports(string content)
         {
             if (string.IsNullOrEmpty(content))
                 return null;
@@ -158,14 +158,14 @@ namespace uploader
             try
             {
                 var parsedToken = Newtonsoft.Json.Linq.JToken.Parse(content);
-                var reports = new List<dynamic>();
+                var reports = new List<Newtonsoft.Json.Linq.JToken>();
                 if (parsedToken is Newtonsoft.Json.Linq.JArray)
                 {
-                    foreach (var r in parsedToken) reports.Add((dynamic)r);
+                    foreach (var r in parsedToken) reports.Add(r);
                 }
                 else
                 {
-                    reports.Add((dynamic)parsedToken);
+                    reports.Add(parsedToken);
                 }
                 return reports;
             }
@@ -175,19 +175,17 @@ namespace uploader
             }
         }
 
-        private void ProcessReport(string file, dynamic report)
+        private void ProcessReport(string file, Newtonsoft.Json.Linq.JToken report)
         {
             bool hasPermalink = false;
             if (report != null)
             {
-                try
+                var permalinkToken = report["permalink"];
+                if (permalinkToken != null)
                 {
-                    var reportLink = report.permalink.ToString();
+                    var reportLink = permalinkToken.ToString();
                     Process.Start(reportLink);
                     hasPermalink = true;
-                }
-                catch (RuntimeBinderException)
-                {
                 }
             }
 
@@ -214,10 +212,10 @@ namespace uploader
                 return;
             }
 
-            dynamic scanJson;
+            Newtonsoft.Json.Linq.JObject scanJson;
             try
             {
-                scanJson = JsonConvert.DeserializeObject(scanContent);
+                scanJson = Newtonsoft.Json.Linq.JObject.Parse(scanContent);
             }
             catch (Newtonsoft.Json.JsonReaderException ex)
             {
@@ -227,12 +225,21 @@ namespace uploader
 
             try
             {
-                string sha256 = scanJson.sha256.ToString();
-                string scanId = scanJson.scan_id.ToString();
+                var shaToken = scanJson["sha256"];
+                var idToken = scanJson["scan_id"];
+                if (shaToken != null && idToken != null)
+                {
+                    string sha256 = shaToken.ToString();
+                    string scanId = idToken.ToString();
 
-                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
 
-                Process.Start(scanLink);
+                    Process.Start(scanLink);
+                }
+                else
+                {
+                    DisplayError($"Failed to get link for {fileName}. Missing required properties in response.");
+                }
             }
             catch (Exception ex)
             {
