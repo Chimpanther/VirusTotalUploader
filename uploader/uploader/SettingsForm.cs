@@ -84,7 +84,7 @@ namespace uploader
 
             Settings.SaveSettings(settings);
             //statusLabel.Text = LocalizationHelper.Base.Message_Saved;
-            MessageBox.Show(LocalizationHelper.Base.Message_Saved, "Ok", MessageBoxButtons.OK, MessageBoxIcon.Information); // TODO: custom messagebox with dark theme (because default win32 one is annoying)
+            DarkMessageBox.ShowInformation(LocalizationHelper.Base.Message_Saved, "Ok", DarkDialogButton.Ok);
 
             // Needs full restart to initialize main form strings again
             Application.Restart();
