@@ -137,7 +137,11 @@ namespace uploader
             try
             {
                 var reportLink = reportJson.permalink.ToString();
-                Process.Start(reportLink);
+                if (Uri.TryCreate(reportLink, UriKind.Absolute, out Uri uri) &&
+                    (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+                {
+                    Process.Start(reportLink);
+                }
             }
             catch (RuntimeBinderException)
             {
@@ -158,7 +162,11 @@ namespace uploader
 
                     var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
 
-                    Process.Start(scanLink);
+                    if (Uri.TryCreate(scanLink, UriKind.Absolute, out Uri uri) &&
+                        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+                    {
+                        Process.Start(scanLink);
+                    }
                 }
                 catch (Exception ex)
                 {
