@@ -140,58 +140,60 @@ namespace uploader
             reportRequest.AddParameter("resource", resourceString);
 
             var reportResponse = _client.Execute(reportRequest);
-            var reportContent = reportResponse.Content;
-
-            if (string.IsNullOrEmpty(reportContent))
-            {
-                foreach (var file in validFiles) ScanFile(file);
-                return;
-            }
-
-            Newtonsoft.Json.Linq.JToken parsedToken;
-            try
-            {
-                parsedToken = Newtonsoft.Json.Linq.JToken.Parse(reportContent);
-            }
-            catch (Newtonsoft.Json.JsonReaderException)
-            {
-                foreach (var file in validFiles) ScanFile(file);
-                return;
-            }
-
-            List<dynamic> reports = new List<dynamic>();
-            if (parsedToken is Newtonsoft.Json.Linq.JArray)
-            {
-                foreach (var r in parsedToken) reports.Add((dynamic)r);
-            }
-            else
-            {
-                reports.Add((dynamic)parsedToken);
-            }
+            var reports = ParseReports(reportResponse.Content);
 
             for (int j = 0; j < validFiles.Count; j++)
             {
                 var file = validFiles[j];
-                var report = reports.Count > j ? reports[j] : null;
+                var report = reports != null && reports.Count > j ? reports[j] : null;
+                ProcessReport(file, report);
+            }
+        }
 
-                bool hasPermalink = false;
-                if (report != null)
-                {
-                    try
-                    {
-                        var reportLink = report.permalink.ToString();
-                        Process.Start(reportLink);
-                        hasPermalink = true;
-                    }
-                    catch (RuntimeBinderException)
-                    {
-                    }
-                }
+        private List<dynamic> ParseReports(string content)
+        {
+            if (string.IsNullOrEmpty(content))
+                return null;
 
-                if (!hasPermalink)
+            try
+            {
+                var parsedToken = Newtonsoft.Json.Linq.JToken.Parse(content);
+                var reports = new List<dynamic>();
+                if (parsedToken is Newtonsoft.Json.Linq.JArray)
                 {
-                    ScanFile(file);
+                    foreach (var r in parsedToken) reports.Add((dynamic)r);
                 }
+                else
+                {
+                    reports.Add((dynamic)parsedToken);
+                }
+                return reports;
+            }
+            catch (Newtonsoft.Json.JsonReaderException)
+            {
+                return null;
+            }
+        }
+
+        private void ProcessReport(string file, dynamic report)
+        {
+            bool hasPermalink = false;
+            if (report != null)
+            {
+                try
+                {
+                    var reportLink = report.permalink.ToString();
+                    Process.Start(reportLink);
+                    hasPermalink = true;
+                }
+                catch (RuntimeBinderException)
+                {
+                }
+            }
+
+            if (!hasPermalink)
+            {
+                ScanFile(file);
             }
         }
 
