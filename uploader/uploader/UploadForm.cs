@@ -22,7 +22,8 @@ namespace uploader
         private readonly string _path;
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
-        private Thread _uploadThread;
+        private CancellationTokenSource _cancellationTokenSource;
+        private Task _uploadTask;
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
@@ -82,7 +83,7 @@ namespace uploader
             messageBox.ShowDialog();
         }
 
-        private void Upload()
+        private async Task UploadAsync(CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
@@ -110,13 +111,14 @@ namespace uploader
 
             foreach (var file in _filesToUpload)
             {
-                UploadFile(file);
+                cancellationToken.ThrowIfCancellationRequested();
+                await UploadFileAsync(file, cancellationToken);
             }
 
             Finish(true);
         }
 
-        private void UploadFile(string fullPath)
+        private async Task UploadFileAsync(string fullPath, CancellationToken cancellationToken)
         {
             if (!File.Exists(fullPath))
             {
@@ -130,7 +132,8 @@ namespace uploader
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetMD5(fullPath));
 
-            var reportResponse = _client.Execute(reportRequest);
+            var reportResponse = await _client.ExecuteAsync(reportRequest, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             var reportContent = reportResponse.Content;
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
@@ -147,7 +150,8 @@ namespace uploader
                 scanRequest.AddParameter("apikey", _settings.ApiKey);
                 scanRequest.AddFile("file", fullPath);
 
-                var scanResponse = _client.Execute(scanRequest);
+                var scanResponse = await _client.ExecuteAsync(scanRequest, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 var scanContent = scanResponse.Content;
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
@@ -167,18 +171,36 @@ namespace uploader
             }
         }
 
-        private void StartUploadThread()
+        private async void StartUploadThread()
         {
-            if (_uploadThread != null && _uploadThread.IsAlive)
+            if (_uploadTask != null && !_uploadTask.IsCompleted)
             {
-                _uploadThread.Abort();
+                _cancellationTokenSource?.Cancel();
                 uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
                 return;
             }
             uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
-            _uploadThread = new Thread(Upload);
-            _uploadThread.Start();
+            _cancellationTokenSource = new CancellationTokenSource();
+            _uploadTask = Task.Run(async () => await UploadAsync(_cancellationTokenSource.Token));
+
+            try
+            {
+                await _uploadTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Upload cancelled
+            }
+            catch (Exception ex)
+            {
+                DisplayError($"Upload error: {ex.Message}");
+            }
+            finally
+            {
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
+            }
         }
 
         private void UploadForm_Load(object sender, EventArgs e)
