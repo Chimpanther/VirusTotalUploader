@@ -128,7 +128,7 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetMD5(fullPath));
+            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
             var reportResponse = _client.Execute(reportRequest);
             var reportContent = reportResponse.Content;
