@@ -116,6 +116,26 @@ namespace uploader
             Finish(true);
         }
 
+        private void OpenUrlSafe(string url)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
+            {
+                return;
+            }
+
+            if (uri.Scheme == Uri.UriSchemeHttp)
+            {
+                Process.Start(url);
+                return;
+            }
+
+            if (uri.Scheme == Uri.UriSchemeHttps)
+            {
+                Process.Start(url);
+                return;
+            }
+        }
+
         private void UploadFile(string fullPath)
         {
             if (!File.Exists(fullPath))
@@ -137,7 +157,7 @@ namespace uploader
             try
             {
                 var reportLink = reportJson.permalink.ToString();
-                Process.Start(reportLink);
+                OpenUrlSafe(reportLink);
             }
             catch (RuntimeBinderException)
             {
@@ -157,8 +177,7 @@ namespace uploader
                     string scanId = scanJson.scan_id.ToString();
 
                     var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-
-                    Process.Start(scanLink);
+                    OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)
                 {
