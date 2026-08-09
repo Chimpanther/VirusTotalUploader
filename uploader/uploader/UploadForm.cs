@@ -78,24 +78,20 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
+            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
         }
 
         private void Upload()
         {
-            if (string.IsNullOrEmpty(_settings.ApiKey))
-            {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            if (_settings.ApiKey.Length != 64)
-            {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
             ChangeStatus(LocalizationHelper.Base.Message_Init);
             _client = new RestClient("https://www.virustotal.com");
 
@@ -108,12 +104,17 @@ namespace uploader
                 _filesToUpload = new List<string> { _path };
             }
 
-            foreach (var file in _filesToUpload)
+            try
             {
-                UploadFile(file);
+                foreach (var file in _filesToUpload)
+                {
+                    UploadFile(file);
+                }
             }
-
-            Finish(true);
+            finally
+            {
+                Finish(true);
+            }
         }
 
         private void OpenUrlSafe(string url)
@@ -188,6 +189,24 @@ namespace uploader
 
         private void StartUploadThread()
         {
+            if (string.IsNullOrEmpty(_settings.ApiKey))
+            {
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
+                return;
+            }
+
+            if (_settings.ApiKey.Length != 64)
+            {
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
+                return;
+            }
+
             if (_uploadThread != null && _uploadThread.IsAlive)
             {
                 _uploadThread.Abort();

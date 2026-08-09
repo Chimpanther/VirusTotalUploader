@@ -38,5 +38,49 @@ namespace uploader.Tests
                 File.Delete(tempFile);
             }
         }
+
+        [Fact]
+        public void GetSHA256_ValidFile_ReturnsCorrectHash()
+        {
+            // Arrange
+            string tempFile = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(tempFile, "hello world");
+
+                // Act
+                string hash = Utils.GetSHA256(tempFile);
+
+                // Assert
+                // SHA256 of "hello world" is B94D27B9934D3E08A52E52D7DA7DABFAC484EFE37A5380EE9088F7ACE2EFCDE9
+                Assert.Equal("B94D27B9934D3E08A52E52D7DA7DABFAC484EFE37A5380EE9088F7ACE2EFCDE9", hash);
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
+        }
+
+        [Fact]
+        public void GetSHA1_ValidFile_ReturnsCorrectHash()
+        {
+            // Arrange
+            string tempFile = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(tempFile, "hello world");
+
+                // Act
+                string hash = Utils.GetSHA1(tempFile);
+
+                // Assert
+                // SHA1 of "hello world" is 2AAE6C35C94FCFB415DBE95F408B9CE91EE846ED
+                Assert.Equal("2AAE6C35C94FCFB415DBE95F408B9CE91EE846ED", hash);
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
+        }
     }
 }
