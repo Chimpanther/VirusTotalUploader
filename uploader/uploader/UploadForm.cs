@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -78,8 +78,16 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
+            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
         }
 
         private void Upload()
@@ -123,16 +131,16 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            try
             {
-                Process.Start(url);
-                return;
+                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                {
+                    Process.Start(url);
+                }
             }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
+            catch (Exception ex)
             {
-                Process.Start(url);
-                return;
+                DisplayError($"Failed to open URL. Error: {ex.Message}");
             }
         }
 
