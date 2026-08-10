@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace uploader
 {
@@ -29,21 +26,25 @@ namespace uploader
 
         public static string GetSHA256(string file)
         {
-            using (var stream = File.OpenRead(file))
+            using (var sha = SHA256.Create())
             {
-                var sha = new SHA256Managed();
-                var checksum = sha.ComputeHash(stream);
-                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                using (var stream = File.OpenRead(file))
+                {
+                    var checksum = sha.ComputeHash(stream);
+                    return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                }
             }
         }
 
         public static string GetSHA1(string file)
         {
-            using (var stream = File.OpenRead(file))
+            using (var sha = SHA1.Create())
             {
-                var sha = new SHA1Managed();
-                var checksum = sha.ComputeHash(stream);
-                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                using (var stream = File.OpenRead(file))
+                {
+                    var checksum = sha.ComputeHash(stream);
+                    return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                }
             }
         }
     }
