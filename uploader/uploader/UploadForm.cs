@@ -221,14 +221,20 @@ namespace uploader
             }
         }
 
+        private bool IsUploadRunning()
+        {
+            return _cancellationSource != null && _uploadTask != null && !_uploadTask.IsCompleted;
+        }
+
         private void StartUploadThread()
         {
-            if (_cancellationSource != null && _uploadTask != null && !_uploadTask.IsCompleted)
+            if (IsUploadRunning())
             {
                 _cancellationSource.Cancel();
                 uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
                 return;
             }
+
             uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
             _cancellationSource = new CancellationTokenSource();
