@@ -24,4 +24,14 @@
     <Compile Include="..\uploader\Utils.cs" Link="Utils.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\uploader\Settings.cs" Link="Settings.cs" />
+    <Compile Include="..\uploader\LocalizationHelper.cs" Link="LocalizationHelper.cs" />
+    <Compile Include="..\uploader\LocalizationBase.cs" Link="LocalizationBase.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
 </Project>
