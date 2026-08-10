@@ -205,13 +205,11 @@ namespace uploader
             if (_isFolder)
             {
                 mdTextbox.Text = "N/A (Folder)";
-                shaTextbox.Text = "N/A (Folder)";
                 sha2Textbox.Text = "N/A (Folder)";
             }
             else
             {
                 mdTextbox.Text = Utils.GetMD5(_path);
-                shaTextbox.Text = Utils.GetSHA1(_path);
                 sha2Textbox.Text = Utils.GetSHA256(_path);
             }
 
