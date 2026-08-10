@@ -64,7 +64,7 @@ namespace uploader
                 statusLabel.Text = LocalizationHelper.Base.Message_NoSettings;
                 return;
             }
-            
+
             var safePath = file.Replace("\"", "\\\"");
             var args = $"/e, /select, \"{safePath}\"";
 
@@ -78,7 +78,7 @@ namespace uploader
 
             var settings = new Settings
             {
-                ApiKey = apiTextbox.Text, 
+                ApiKey = apiTextbox.Text,
                 Language = languageCombo.Text,
                 DirectUpload = directCheckbox.Checked
             };
@@ -93,7 +93,18 @@ namespace uploader
 
         private void getApiButton_Click(object sender, EventArgs e)
         {
-            Process.Start("https://developers.virustotal.com/reference");
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://developers.virustotal.com/reference",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open URL. Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

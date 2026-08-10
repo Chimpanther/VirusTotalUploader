@@ -125,13 +125,35 @@ namespace uploader
 
             if (uri.Scheme == Uri.UriSchemeHttp)
             {
-                Process.Start(url);
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = uri.AbsoluteUri,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    DisplayError($"Failed to open URL. Error: {ex.Message}");
+                }
                 return;
             }
 
             if (uri.Scheme == Uri.UriSchemeHttps)
             {
-                Process.Start(url);
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = uri.AbsoluteUri,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    DisplayError($"Failed to open URL. Error: {ex.Message}");
+                }
                 return;
             }
         }
@@ -176,7 +198,7 @@ namespace uploader
                     string sha256 = scanJson.sha256.ToString();
                     string scanId = scanJson.scan_id.ToString();
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                    var scanLink = $"https://www.virustotal.com/gui/file/{Uri.EscapeDataString(sha256)}/detection/{Uri.EscapeDataString(scanId)}";
                     OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)
