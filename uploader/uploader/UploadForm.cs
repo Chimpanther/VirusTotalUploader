@@ -210,8 +210,8 @@ namespace uploader
             }
             else
             {
-                mdTextbox.Text = Utils.GetMD5(_path);
-                shaTextbox.Text = Utils.GetSHA1(_path);
+                mdTextbox.Text = Utils.GetSHA384(_path);
+                shaTextbox.Text = Utils.GetSHA512(_path);
                 sha2Textbox.Text = Utils.GetSHA256(_path);
             }
 
