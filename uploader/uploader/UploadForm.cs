@@ -115,7 +115,6 @@ namespace uploader
 
             Finish(true);
         }
-
         private void OpenUrlSafe(string url)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
@@ -123,18 +122,20 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
-                Process.Start(url);
-                return;
-            }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
-            {
-                Process.Start(url);
-                return;
+                try
+                {
+                    var info = new ProcessStartInfo { FileName = uri.AbsoluteUri, UseShellExecute = true };
+                    Process.Start(info);
+                }
+                catch (Win32Exception)
+                {
+                    // No default application associated with the protocol
+                }
             }
         }
+
 
         private void UploadFile(string fullPath)
         {
