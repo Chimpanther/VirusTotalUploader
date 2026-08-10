@@ -26,6 +26,7 @@ namespace uploader
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
+        private string _singleFileSha256;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -148,7 +149,12 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
+
+            string sha256 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_singleFileSha256))
+                ? _singleFileSha256
+                : Utils.GetSHA256(fullPath);
+
+            reportRequest.AddParameter("resource", sha256);
 
             var reportResponse = _client.Execute(reportRequest);
             var reportContent = reportResponse.Content;
@@ -212,7 +218,8 @@ namespace uploader
             {
                 mdTextbox.Text = Utils.GetMD5(_path);
                 shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                _singleFileSha256 = Utils.GetSHA256(_path);
+                sha2Textbox.Text = _singleFileSha256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;

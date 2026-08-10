@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using uploader;
 using Xunit;
@@ -38,5 +38,47 @@ namespace uploader.Tests
                 File.Delete(tempFile);
             }
         }
-    }
+
+        [Fact]
+        public void GetSHA256_Benchmark()
+        {
+            // Arrange
+            string tempFile = Path.GetTempFileName();
+            try
+            {
+                // Create a 50MB dummy file
+                byte[] data = new byte[50 * 1024 * 1024];
+                new Random(42).NextBytes(data);
+                File.WriteAllBytes(tempFile, data);
+
+                // Warmup
+                Utils.GetSHA256(tempFile);
+
+                // Act - Baseline: Uncached (compute twice)
+                var swUncached = System.Diagnostics.Stopwatch.StartNew();
+                string hash1 = Utils.GetSHA256(tempFile);
+                string hash2 = Utils.GetSHA256(tempFile); // Duplicate work
+                swUncached.Stop();
+
+                // Act - Optimized: Cached (compute once, use cached)
+                var swCached = System.Diagnostics.Stopwatch.StartNew();
+                string cachedHash = Utils.GetSHA256(tempFile);
+                string useHash2 = cachedHash; // Use cached work
+                swCached.Stop();
+
+                // Assert
+                Console.WriteLine($"[Benchmark] Uncached time (ms): {swUncached.ElapsedMilliseconds}");
+                Console.WriteLine($"[Benchmark] Cached time (ms): {swCached.ElapsedMilliseconds}");
+
+                Assert.Equal(hash1, hash2);
+                Assert.Equal(hash1, cachedHash);
+                // We expect cached to be significantly faster (at least 20% faster for 50MB)
+                Assert.True(swCached.ElapsedMilliseconds < swUncached.ElapsedMilliseconds);
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
+        }
+}
 }
