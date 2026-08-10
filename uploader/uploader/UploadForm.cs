@@ -19,21 +19,21 @@ namespace uploader
     public partial class UploadForm : DarkForm
     {
         private readonly bool _reopen;
-        private readonly string _path;
+        private readonly List<string> _paths;
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
         private Thread _uploadThread;
         private RestClient _client;
-        private bool _isFolder;
+
         private List<string> _filesToUpload;
 
-        public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
+        public UploadForm(MainForm mainForm, Settings settings, bool reopen, List<string> paths)
         {
-            _path = path;
+            _paths = paths;
             _mainForm = mainForm;
             _settings = settings;
             _reopen = reopen;
-            _isFolder = Directory.Exists(_path);
+
 
             InitializeComponent();
         }
@@ -99,13 +99,17 @@ namespace uploader
             ChangeStatus(LocalizationHelper.Base.Message_Init);
             _client = new RestClient("https://www.virustotal.com");
 
-            if (_isFolder)
+            _filesToUpload = new List<string>();
+            foreach (var path in _paths)
             {
-                _filesToUpload = Directory.GetFiles(_path, "*.*", SearchOption.AllDirectories).ToList();
-            }
-            else
-            {
-                _filesToUpload = new List<string> { _path };
+                if (Directory.Exists(path))
+                {
+                    _filesToUpload.AddRange(Directory.GetFiles(path, "*.*", SearchOption.AllDirectories));
+                }
+                else
+                {
+                    _filesToUpload.Add(path);
+                }
             }
 
             foreach (var file in _filesToUpload)
@@ -202,17 +206,17 @@ namespace uploader
 
         private void UploadForm_Load(object sender, EventArgs e)
         {
-            if (_isFolder)
+            if (_paths.Count == 1 && !Directory.Exists(_paths[0]))
             {
-                mdTextbox.Text = "N/A (Folder)";
-                shaTextbox.Text = "N/A (Folder)";
-                sha2Textbox.Text = "N/A (Folder)";
+                mdTextbox.Text = Utils.GetMD5(_paths[0]);
+                shaTextbox.Text = Utils.GetSHA1(_paths[0]);
+                sha2Textbox.Text = Utils.GetSHA256(_paths[0]);
             }
             else
             {
-                mdTextbox.Text = Utils.GetMD5(_path);
-                shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                mdTextbox.Text = "N/A (Multiple files/Folder)";
+                shaTextbox.Text = "N/A (Multiple files/Folder)";
+                sha2Textbox.Text = "N/A (Multiple files/Folder)";
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
