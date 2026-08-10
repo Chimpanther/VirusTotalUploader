@@ -91,33 +91,36 @@ namespace uploader
             }
         }
 
+        private void ShowErrorMessageBox(string text, string caption)
+        {
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => ShowErrorMessageBox(text, caption)));
+                return;
+            }
+            MessageBox.Show(text, caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
         private async Task UploadAsync(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                if (InvokeRequired) { Invoke(new Action(() => MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error))); }
-                else { MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                ShowErrorMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey);
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                if (InvokeRequired) { Invoke(new Action(() => MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error))); }
-                else { MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                ShowErrorMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey);
                 return;
             }
 
             ChangeStatus(LocalizationHelper.Base.Message_Init);
             _client = new RestClient("https://www.virustotal.com");
 
-            if (_isFolder)
-            {
-                _filesToUpload = Directory.GetFiles(_path, "*.*", SearchOption.AllDirectories).ToList();
-            }
-            else
-            {
-                _filesToUpload = new List<string> { _path };
-            }
+            _filesToUpload = _isFolder
+                ? Directory.GetFiles(_path, "*.*", SearchOption.AllDirectories).ToList()
+                : new List<string> { _path };
 
             foreach (var file in _filesToUpload)
             {
@@ -148,6 +151,38 @@ namespace uploader
             {
                 Process.Start(url);
                 return;
+            }
+        }
+
+        private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
+        {
+            // Json does not contain permalink which means it's a new file (or the request failed)
+            ChangeStatus($"Uploading {fileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _settings.ApiKey);
+            scanRequest.AddFile("file", fullPath);
+
+            var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+            if (token.IsCancellationRequested) return;
+
+            var scanContent = scanResponse.Content;
+
+            dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+
+            try
+            {
+                string sha256 = scanJson.sha256.ToString();
+                string scanId = scanJson.scan_id.ToString();
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                if (!token.IsCancellationRequested)
+                {
+                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+                }
             }
         }
 
@@ -182,35 +217,7 @@ namespace uploader
             catch (RuntimeBinderException)
             {
                 if (token.IsCancellationRequested) return;
-
-                // Json does not contain permalink which means it's a new file (or the request failed)
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
-
-                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
-                if (token.IsCancellationRequested) return;
-
-                var scanContent = scanResponse.Content;
-
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
-
-                try
-                {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
-
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    OpenUrlSafe(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    if (!token.IsCancellationRequested)
-                    {
-                        DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
-                    }
-                }
+                await ScanFileAsync(fullPath, fileName, token);
             }
         }
 
