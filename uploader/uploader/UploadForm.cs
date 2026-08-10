@@ -91,27 +91,37 @@ namespace uploader
             }
         }
 
-        private void ShowErrorMessageBox(string text, string caption)
+        private void ShowInvalidKeyError()
         {
             if (InvokeRequired)
             {
-                this.Invoke(new Action(() => ShowErrorMessageBox(text, caption)));
+                this.Invoke(new Action(ShowInvalidKeyError));
                 return;
             }
-            MessageBox.Show(text, caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        private void ShowInvalidLengthError()
+        {
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(ShowInvalidLengthError));
+                return;
+            }
+            MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         private async Task UploadAsync(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                ShowErrorMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey);
+                ShowInvalidKeyError();
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                ShowErrorMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey);
+                ShowInvalidLengthError();
                 return;
             }
 
@@ -154,8 +164,9 @@ namespace uploader
             }
         }
 
-        private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
+        private async Task ScanFileAsync(string fullPath, CancellationToken token)
         {
+            var fileName = Path.GetFileName(fullPath);
             // Json does not contain permalink which means it's a new file (or the request failed)
             ChangeStatus($"Uploading {fileName}...");
             var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
@@ -217,7 +228,7 @@ namespace uploader
             catch (RuntimeBinderException)
             {
                 if (token.IsCancellationRequested) return;
-                await ScanFileAsync(fullPath, fileName, token);
+                await ScanFileAsync(fullPath, token);
             }
         }
 
