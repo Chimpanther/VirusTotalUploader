@@ -78,8 +78,16 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
+            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
         }
 
         private void Upload()
@@ -108,10 +116,11 @@ namespace uploader
                 _filesToUpload = new List<string> { _path };
             }
 
-            foreach (var file in _filesToUpload)
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+            Parallel.ForEach(_filesToUpload, options, file =>
             {
                 UploadFile(file);
-            }
+            });
 
             Finish(true);
         }
@@ -123,16 +132,16 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            try
             {
-                Process.Start(url);
-                return;
+                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                {
+                    Process.Start(url);
+                }
             }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
+            catch (Win32Exception)
             {
-                Process.Start(url);
-                return;
+                // No default application associated with the protocol
             }
         }
 
