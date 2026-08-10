@@ -22,7 +22,8 @@ namespace uploader
         private readonly string _path;
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
-        private Thread _uploadThread;
+        private CancellationTokenSource _cancellationSource;
+        private Task _uploadTask;
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
@@ -78,21 +79,31 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
+            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
         }
 
-        private void Upload()
+        private async Task UploadAsync(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (InvokeRequired) { Invoke(new Action(() => MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error))); }
+                else { MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error); }
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (InvokeRequired) { Invoke(new Action(() => MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error))); }
+                else { MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error); }
                 return;
             }
 
@@ -110,10 +121,14 @@ namespace uploader
 
             foreach (var file in _filesToUpload)
             {
-                UploadFile(file);
+                if (token.IsCancellationRequested) return;
+                await UploadFileAsync(file, token);
             }
 
-            Finish(true);
+            if (!token.IsCancellationRequested)
+            {
+                Finish(true);
+            }
         }
 
         private void OpenUrlSafe(string url)
@@ -136,8 +151,10 @@ namespace uploader
             }
         }
 
-        private void UploadFile(string fullPath)
+        private async Task UploadFileAsync(string fullPath, CancellationToken token)
         {
+            if (token.IsCancellationRequested) return;
+
             if (!File.Exists(fullPath))
             {
                 DisplayError($"File {fullPath} does not exist.");
@@ -150,8 +167,11 @@ namespace uploader
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
-            var reportResponse = _client.Execute(reportRequest);
+            var reportResponse = await _client.ExecuteAsync(reportRequest, token);
+            if (token.IsCancellationRequested) return;
+
             var reportContent = reportResponse.Content;
+
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
             try
@@ -161,14 +181,19 @@ namespace uploader
             }
             catch (RuntimeBinderException)
             {
+                if (token.IsCancellationRequested) return;
+
                 // Json does not contain permalink which means it's a new file (or the request failed)
                 ChangeStatus($"Uploading {fileName}...");
                 var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
                 scanRequest.AddParameter("apikey", _settings.ApiKey);
                 scanRequest.AddFile("file", fullPath);
 
-                var scanResponse = _client.Execute(scanRequest);
+                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+                if (token.IsCancellationRequested) return;
+
                 var scanContent = scanResponse.Content;
+
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
                 try
@@ -181,23 +206,26 @@ namespace uploader
                 }
                 catch (Exception ex)
                 {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+                    if (!token.IsCancellationRequested)
+                    {
+                        DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+                    }
                 }
             }
         }
 
         private void StartUploadThread()
         {
-            if (_uploadThread != null && _uploadThread.IsAlive)
+            if (_cancellationSource != null && _uploadTask != null && !_uploadTask.IsCompleted)
             {
-                _uploadThread.Abort();
+                _cancellationSource.Cancel();
                 uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
                 return;
             }
             uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
-            _uploadThread = new Thread(Upload);
-            _uploadThread.Start();
+            _cancellationSource = new CancellationTokenSource();
+            _uploadTask = Task.Run(() => UploadAsync(_cancellationSource.Token));
         }
 
         private void UploadForm_Load(object sender, EventArgs e)
