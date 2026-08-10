@@ -210,9 +210,10 @@ namespace uploader
             }
             else
             {
-                mdTextbox.Text = Utils.GetMD5(_path);
-                shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                var hashes = Utils.GetHashes(_path);
+                mdTextbox.Text = hashes.md5;
+                shaTextbox.Text = hashes.sha1;
+                sha2Textbox.Text = hashes.sha256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
