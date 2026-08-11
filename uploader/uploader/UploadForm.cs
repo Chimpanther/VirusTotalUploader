@@ -79,31 +79,21 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            if (InvokeRequired)
-            {
-                this.Invoke(new Action(() => DisplayError(error)));
-                return;
-            }
-
-            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-            {
-                messageBox.ShowDialog();
-            }
+            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
+            messageBox.ShowDialog();
         }
 
         private async Task UploadAsync(CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                DisplayError(LocalizationHelper.Base.UploadForm_NoApiKey);
-                Finish(true);
+                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                DisplayError(LocalizationHelper.Base.UploadForm_InvalidLength);
-                Finish(true);
+                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -128,29 +118,6 @@ namespace uploader
             Finish(true);
         }
 
-        private void OpenUrlSafe(string url)
-        {
-            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
-            {
-                return;
-            }
-
-            try
-            {
-                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-                {
-                    Process.Start(url);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
-                // Silently ignoring is safer than crashing the background thread.
-                Debug.WriteLine($"Failed to open URL: {ex.Message}");
-            }
-        }
-
-        private void UploadFile(string fullPath)
         private async Task UploadFileAsync(string fullPath, CancellationToken cancellationToken)
         {
             if (!File.Exists(fullPath))
@@ -163,7 +130,7 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
+            reportRequest.AddParameter("resource", Utils.GetMD5(fullPath));
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -173,7 +140,7 @@ namespace uploader
             try
             {
                 var reportLink = reportJson.permalink.ToString();
-                OpenUrlSafe(reportLink);
+                Process.Start(reportLink);
             }
             catch (RuntimeBinderException)
             {
@@ -194,7 +161,8 @@ namespace uploader
                     string scanId = scanJson.scan_id.ToString();
 
                     var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    OpenUrlSafe(scanLink);
+
+                    Process.Start(scanLink);
                 }
                 catch (Exception ex)
                 {
@@ -214,7 +182,7 @@ namespace uploader
             uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
             _cancellationTokenSource = new CancellationTokenSource();
-            _uploadTask = Task.Run(async () => await UploadAsync(_cancellationTokenSource.Token));
+            _uploadTask = UploadAsync(_cancellationTokenSource.Token);
 
             try
             {
