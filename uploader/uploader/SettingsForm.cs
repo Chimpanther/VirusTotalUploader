@@ -53,7 +53,6 @@ namespace uploader
             this.Text = LocalizationHelper.Base.SettingsForm_Title;
             directCheckbox.Text = LocalizationHelper.Base.SettingsForm_DirectUpload;
 
-            //LocalizationHelper.Export();
         }
 
         private void darkButton1_Click(object sender, EventArgs e)
@@ -84,7 +83,10 @@ namespace uploader
             };
 
             Settings.SaveSettings(settings);
-            MessageBox.Show(LocalizationHelper.Base.Message_Saved, "Ok", MessageBoxButtons.OK, MessageBoxIcon.Information); // TODO: custom messagebox with dark theme (because default win32 one is annoying)
+            using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.Message_Saved, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
 
             // Needs full restart to initialize main form strings again
             Application.Restart();
