@@ -115,12 +115,16 @@ namespace uploader
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
+                DisplayError(LocalizationHelper.Base.UploadForm_NoApiKey);
+                Finish(true);
                 ShowInvalidKeyError();
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
+                DisplayError(LocalizationHelper.Base.UploadForm_InvalidLength);
+                Finish(true);
                 ShowInvalidLengthError();
                 return;
             }
@@ -151,16 +155,18 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            try
             {
-                Process.Start(url);
-                return;
+                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                {
+                    Process.Start(url);
+                }
             }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
+            catch (Exception ex)
             {
-                Process.Start(url);
-                return;
+                // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
+                // Silently ignoring is safer than crashing the background thread.
+                Debug.WriteLine($"Failed to open URL: {ex.Message}");
             }
         }
 
