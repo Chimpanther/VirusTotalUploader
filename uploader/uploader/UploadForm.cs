@@ -182,7 +182,7 @@ namespace uploader
             uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
             _cancellationTokenSource = new CancellationTokenSource();
-            _uploadTask = Task.Run(() => UploadAsync(_cancellationTokenSource.Token));
+            _uploadTask = Task.Run(async () => await UploadAsync(_cancellationTokenSource.Token));
 
             try
             {
