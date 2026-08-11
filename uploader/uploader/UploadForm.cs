@@ -79,21 +79,31 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
+            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
         }
 
         private async Task UploadAsync(CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                DisplayError(LocalizationHelper.Base.UploadForm_NoApiKey);
+                Finish(true);
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                DisplayError(LocalizationHelper.Base.UploadForm_InvalidLength);
+                Finish(true);
                 return;
             }
 
@@ -118,6 +128,29 @@ namespace uploader
             Finish(true);
         }
 
+        private void OpenUrlSafe(string url)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
+            {
+                return;
+            }
+
+            try
+            {
+                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                {
+                    Process.Start(url);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
+                // Silently ignoring is safer than crashing the background thread.
+                Debug.WriteLine($"Failed to open URL: {ex.Message}");
+            }
+        }
+
+        private void UploadFile(string fullPath)
         private async Task UploadFileAsync(string fullPath, CancellationToken cancellationToken)
         {
             if (!File.Exists(fullPath))
@@ -130,7 +163,7 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetMD5(fullPath));
+            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -140,7 +173,7 @@ namespace uploader
             try
             {
                 var reportLink = reportJson.permalink.ToString();
-                Process.Start(reportLink);
+                OpenUrlSafe(reportLink);
             }
             catch (RuntimeBinderException)
             {
@@ -161,8 +194,7 @@ namespace uploader
                     string scanId = scanJson.scan_id.ToString();
 
                     var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-
-                    Process.Start(scanLink);
+                    OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)
                 {
