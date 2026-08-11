@@ -29,28 +29,20 @@ namespace uploader
 
         public static string GetSHA256(string file)
         {
-
-            using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-
-            using (var stream = File.OpenRead(file))
-
+            using (var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var sha = SHA256.Create())
             {
-                var checksum = sha.ComputeHash(stream);
+                var checksum = sha.ComputeHash(fs);
                 return BitConverter.ToString(checksum).Replace("-", string.Empty);
             }
         }
 
         public static string GetSHA1(string file)
         {
-
-            using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-
-            using (var stream = File.OpenRead(file))
-
+            using (var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var sha = SHA1.Create())
             {
-                var checksum = sha.ComputeHash(stream);
+                var checksum = sha.ComputeHash(fs);
                 return BitConverter.ToString(checksum).Replace("-", string.Empty);
             }
         }
