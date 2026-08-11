@@ -94,13 +94,15 @@ namespace uploader
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                DisplayError(LocalizationHelper.Base.UploadForm_NoApiKey);
+                Finish(true);
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                DisplayError(LocalizationHelper.Base.UploadForm_InvalidLength);
+                Finish(true);
                 return;
             }
 
@@ -140,6 +142,9 @@ namespace uploader
             }
             catch (Exception ex)
             {
+                // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
+                // Silently ignoring is safer than crashing the background thread.
+                Debug.WriteLine($"Failed to open URL: {ex.Message}");
                 DisplayError($"Failed to open URL. Error: {ex.Message}");
             }
         }
