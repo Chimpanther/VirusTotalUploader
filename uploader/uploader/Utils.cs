@@ -30,36 +30,24 @@ namespace uploader
         public static string GetSHA256(string file)
         {
             using (var stream = File.OpenRead(file))
-            using (var sha = SHA256.Create())
             {
-
-                using (var sha = SHA256.Create())
+                using (var sha256 = SHA256.Create())
                 {
-                    var checksum = sha.ComputeHash(stream);
+                    var checksum = sha256.ComputeHash(stream);
                     return BitConverter.ToString(checksum).Replace("-", string.Empty);
                 }
-
-                var checksum = sha.ComputeHash(stream);
-                return BitConverter.ToString(checksum).Replace("-", string.Empty);
-
             }
         }
 
         public static string GetSHA1(string file)
         {
             using (var stream = File.OpenRead(file))
-            using (var sha = SHA1.Create())
             {
-
-                using (var sha = SHA1.Create())
+                using (var sha1 = SHA1.Create())
                 {
-                    var checksum = sha.ComputeHash(stream);
+                    var checksum = sha1.ComputeHash(stream);
                     return BitConverter.ToString(checksum).Replace("-", string.Empty);
                 }
-
-                var checksum = sha.ComputeHash(stream);
-                return BitConverter.ToString(checksum).Replace("-", string.Empty);
-
             }
         }
     }
