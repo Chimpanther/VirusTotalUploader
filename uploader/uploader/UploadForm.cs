@@ -78,31 +78,21 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            if (InvokeRequired)
-            {
-                this.Invoke(new Action(() => DisplayError(error)));
-                return;
-            }
-
-            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-            {
-                messageBox.ShowDialog();
-            }
+            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
+            messageBox.ShowDialog();
         }
 
         private void Upload()
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                DisplayError(LocalizationHelper.Base.UploadForm_NoApiKey);
-                Finish(true);
+                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                DisplayError(LocalizationHelper.Base.UploadForm_InvalidLength);
-                Finish(true);
+                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -118,17 +108,12 @@ namespace uploader
                 _filesToUpload = new List<string> { _path };
             }
 
-            try
+            foreach (var file in _filesToUpload)
             {
-                foreach (var file in _filesToUpload)
-                {
-                    UploadFile(file);
-                }
+                UploadFile(file);
             }
-            finally
-            {
-                Finish(true);
-            }
+
+            Finish(true);
         }
 
         private void OpenUrlSafe(string url)
@@ -138,18 +123,16 @@ namespace uploader
                 return;
             }
 
-            try
+            if (uri.Scheme == Uri.UriSchemeHttp)
             {
-                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-                {
-                    Process.Start(url);
-                }
+                Process.Start(url);
+                return;
             }
-            catch (Exception ex)
+
+            if (uri.Scheme == Uri.UriSchemeHttps)
             {
-                // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
-                // Silently ignoring is safer than crashing the background thread.
-                Debug.WriteLine($"Failed to open URL: {ex.Message}");
+                Process.Start(url);
+                return;
             }
         }
 
@@ -205,24 +188,6 @@ namespace uploader
 
         private void StartUploadThread()
         {
-            if (string.IsNullOrEmpty(_settings.ApiKey))
-            {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                {
-                    messageBox.ShowDialog();
-                }
-                return;
-            }
-
-            if (_settings.ApiKey.Length != 64)
-            {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                {
-                    messageBox.ShowDialog();
-                }
-                return;
-            }
-
             if (_uploadThread != null && _uploadThread.IsAlive)
             {
                 _uploadThread.Abort();
