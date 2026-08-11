@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+
 using System.IO;
 using System;
 using Newtonsoft.Json;
@@ -43,8 +43,8 @@ namespace uploader.Tests
         {
             LocalizationHelper.Update(_settingsPath);
 
-            Assert.IsNotNull(LocalizationHelper.Base);
-            Assert.AreEqual("Settings", LocalizationHelper.Base.SettingsForm_Title); // Verify default
+            MSTestAssert.IsNotNull(LocalizationHelper.Base);
+            MSTestAssert.AreEqual("Settings", LocalizationHelper.Base.SettingsForm_Title); // Verify default
         }
 
         [TestMethod]
@@ -58,8 +58,8 @@ namespace uploader.Tests
 
             LocalizationHelper.Update(_settingsPath);
 
-            Assert.IsNotNull(LocalizationHelper.Base);
-            Assert.AreEqual("Settings", LocalizationHelper.Base.SettingsForm_Title);
+            MSTestAssert.IsNotNull(LocalizationHelper.Base);
+            MSTestAssert.AreEqual("Settings", LocalizationHelper.Base.SettingsForm_Title);
         }
 
         [TestMethod]
@@ -79,8 +79,8 @@ namespace uploader.Tests
 
             LocalizationHelper.Update(_settingsPath);
 
-            Assert.IsNotNull(LocalizationHelper.Base);
-            Assert.AreEqual("Custom Settings Title", LocalizationHelper.Base.SettingsForm_Title);
+            MSTestAssert.IsNotNull(LocalizationHelper.Base);
+            MSTestAssert.AreEqual("Custom Settings Title", LocalizationHelper.Base.SettingsForm_Title);
         }
     }
 }
