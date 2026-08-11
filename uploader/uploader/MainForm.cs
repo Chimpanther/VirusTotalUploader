@@ -25,8 +25,6 @@ namespace uploader
         {
             // Set working directory to exe location because of language files
             Directory.SetCurrentDirectory(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-            //LocalizationHelper.Export();
-            
             LocalizationHelper.Update();
 
             dragLabel.Text = LocalizationHelper.Base.MainForm_DragFile;
