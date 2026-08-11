@@ -53,6 +53,7 @@ namespace uploader
             this.Text = LocalizationHelper.Base.SettingsForm_Title;
             directCheckbox.Text = LocalizationHelper.Base.SettingsForm_DirectUpload;
 
+            //LocalizationHelper.Export();
         }
 
         private void darkButton1_Click(object sender, EventArgs e)
@@ -64,8 +65,7 @@ namespace uploader
                 return;
             }
             
-            var safePath = file.Replace("\"", "\\\"");
-            var args = $"/e, /select, \"{safePath}\"";
+            var args = $"/e, /select, \"{Settings.GetSettingsFilename()}\"";
 
             var info = new ProcessStartInfo {FileName = "explorer", Arguments = args};
             Process.Start(info);
@@ -83,16 +83,9 @@ namespace uploader
             };
 
             Settings.SaveSettings(settings);
-
             //statusLabel.Text = LocalizationHelper.Base.Message_Saved;
-            var messageBox = new DarkMessageBox(LocalizationHelper.Base.Message_Saved, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
-
-            using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.Message_Saved, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
-            {
-                messageBox.ShowDialog();
-            }
-
+            var msgBox = new DarkMessageBox(LocalizationHelper.Base.Message_Saved, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok);
+            msgBox.ShowDialog();
 
             // Needs full restart to initialize main form strings again
             Application.Restart();
