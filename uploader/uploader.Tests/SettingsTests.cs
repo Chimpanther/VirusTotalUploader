@@ -1,12 +1,12 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System.IO;
+using uploader;
 
 namespace uploader.Tests
 {
-    [TestClass]
     public class SettingsTests
     {
-        [TestMethod]
+        [Fact]
         public void LoadSettings_MissingFile_ReturnsDefaultSettings()
         {
             // Arrange
@@ -31,10 +31,10 @@ namespace uploader.Tests
                 var settings = Settings.LoadSettings();
 
                 // Assert
-                Assert.IsNotNull(settings);
-                Assert.AreEqual("", settings.ApiKey);
-                Assert.AreEqual("", settings.Language);
-                Assert.IsFalse(settings.DirectUpload);
+                Assert.NotNull(settings);
+                Assert.Equal("", settings.ApiKey);
+                Assert.Equal("", settings.Language);
+                Assert.False(settings.DirectUpload);
             }
             finally
             {
