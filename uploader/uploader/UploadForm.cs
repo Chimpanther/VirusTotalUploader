@@ -92,7 +92,7 @@ namespace uploader
             }
         }
 
-        private void Upload(CancellationToken token)
+        private bool CheckApiKey(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
@@ -106,8 +106,7 @@ namespace uploader
                         }
                     }));
                 }
-                Finish(true);
-                return;
+                return false;
             }
 
             if (_settings.ApiKey.Length != 64)
@@ -122,6 +121,16 @@ namespace uploader
                         }
                     }));
                 }
+                return false;
+            }
+
+            return true;
+        }
+
+        private void Upload(CancellationToken token)
+        {
+            if (!CheckApiKey(token))
+            {
                 Finish(true);
                 return;
             }
@@ -174,6 +183,38 @@ namespace uploader
             }
         }
 
+        private void UploadNewFile(string fileName, string fullPath, CancellationToken token)
+        {
+            ChangeStatus($"Uploading {fileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _settings.ApiKey);
+            scanRequest.AddFile("file", fullPath);
+
+            if (token.IsCancellationRequested) return;
+
+            var scanResponse = _client.Execute(scanRequest);
+            if (token.IsCancellationRequested) return;
+
+            var scanContent = scanResponse.Content;
+            dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+
+            try
+            {
+                string sha256 = scanJson.sha256.ToString();
+                string scanId = scanJson.scan_id.ToString();
+
+                var safeSha256 = Uri.EscapeDataString(sha256);
+                var safeScanId = Uri.EscapeDataString(scanId);
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{safeSha256}/detection/{safeScanId}";
+                OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                Invoke(new Action(() => DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}")));
+            }
+        }
+
         private void UploadFile(string fullPath, CancellationToken token)
         {
             if (!File.Exists(fullPath))
@@ -207,34 +248,7 @@ namespace uploader
             catch (RuntimeBinderException)
             {
                 // Json does not contain permalink which means it's a new file (or the request failed)
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
-
-                if (token.IsCancellationRequested) return;
-
-                var scanResponse = _client.Execute(scanRequest);
-                if (token.IsCancellationRequested) return;
-
-                var scanContent = scanResponse.Content;
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
-
-                try
-                {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
-
-                    var safeSha256 = Uri.EscapeDataString(sha256);
-                    var safeScanId = Uri.EscapeDataString(scanId);
-
-                    var scanLink = $"https://www.virustotal.com/gui/file/{safeSha256}/detection/{safeScanId}";
-                    OpenUrlSafe(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    Invoke(new Action(() => DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}")));
-                }
+                UploadNewFile(fileName, fullPath, token);
             }
         }
 

@@ -14,7 +14,7 @@ namespace uploader
         public string Language = "";
         public bool DirectUpload = false;
 
-        private static Settings? _cachedSettings;
+        private static Settings _cachedSettings;
         private static readonly object _lock = new object();
 
         public static string GetSettingsFilename()
