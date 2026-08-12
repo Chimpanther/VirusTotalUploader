@@ -179,6 +179,35 @@ namespace uploader
             }
         }
 
+        private class ScanResult
+        {
+            public string Sha256 { get; set; }
+            public string ScanId { get; set; }
+        }
+
+        private void ProcessScanResponse(string scanContent, string fileName)
+        {
+            try
+            {
+                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+                var result = new ScanResult
+                {
+                    Sha256 = scanJson.sha256.ToString(),
+                    ScanId = scanJson.scan_id.ToString()
+                };
+
+                var safeSha256 = Uri.EscapeDataString(result.Sha256);
+                var safeScanId = Uri.EscapeDataString(result.ScanId);
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{safeSha256}/detection/{safeScanId}";
+                OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                Invoke(new Action(() => DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}")));
+            }
+        }
+
         private void UploadNewFile(string fileName, string fullPath, CancellationToken token)
         {
             ChangeStatus($"Uploading {fileName}...");
@@ -191,24 +220,7 @@ namespace uploader
             var scanResponse = _client.Execute(scanRequest);
             if (token.IsCancellationRequested) return;
 
-            var scanContent = scanResponse.Content;
-            dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
-
-            try
-            {
-                string sha256 = scanJson.sha256.ToString();
-                string scanId = scanJson.scan_id.ToString();
-
-                var safeSha256 = Uri.EscapeDataString(sha256);
-                var safeScanId = Uri.EscapeDataString(scanId);
-
-                var scanLink = $"https://www.virustotal.com/gui/file/{safeSha256}/detection/{safeScanId}";
-                OpenUrlSafe(scanLink);
-            }
-            catch (Exception ex)
-            {
-                Invoke(new Action(() => DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}")));
-            }
+            ProcessScanResponse(scanResponse.Content, fileName);
         }
 
         private void UploadFile(string fullPath, CancellationToken token)
