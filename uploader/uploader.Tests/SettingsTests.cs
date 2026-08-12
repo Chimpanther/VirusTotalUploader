@@ -2,10 +2,17 @@ using Xunit;
 using System.IO;
 using uploader;
 
+using System;
+
 namespace uploader.Tests
 {
-    public class SettingsTests
+    public class SettingsTests : IDisposable
     {
+        public void Dispose()
+        {
+            Settings.ClearCache();
+        }
+
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefaultSettings()
         {

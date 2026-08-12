@@ -22,7 +22,8 @@ namespace uploader
         private readonly string _path;
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
-        private Thread _uploadThread;
+        private CancellationTokenSource _cancellationTokenSource;
+        private Task _uploadTask;
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
@@ -64,6 +65,12 @@ namespace uploader
             }
 
             uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
+
+            if (_cancellationTokenSource != null)
+            {
+                _cancellationTokenSource.Dispose();
+                _cancellationTokenSource = null;
+            }
         }
 
         private void CloseWindow()
@@ -85,23 +92,37 @@ namespace uploader
             }
         }
 
-        private void Upload()
+        private void Upload(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                if (!token.IsCancellationRequested)
                 {
-                    messageBox.ShowDialog();
+                    Invoke(new Action(() =>
+                    {
+                        using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                        {
+                            messageBox.ShowDialog();
+                        }
+                    }));
                 }
+                Finish(true);
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                if (!token.IsCancellationRequested)
                 {
-                    messageBox.ShowDialog();
+                    Invoke(new Action(() =>
+                    {
+                        using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                        {
+                            messageBox.ShowDialog();
+                        }
+                    }));
                 }
+                Finish(true);
                 return;
             }
 
@@ -119,7 +140,10 @@ namespace uploader
 
             foreach (var file in _filesToUpload)
             {
-                UploadFile(file);
+                if (token.IsCancellationRequested)
+                    break;
+
+                UploadFile(file, token);
             }
 
             Finish(true);
@@ -132,24 +156,29 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
-                Process.Start(url);
-                return;
-            }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
-            {
-                Process.Start(url);
-                return;
+                try
+                {
+                    var info = new ProcessStartInfo
+                    {
+                        FileName = url,
+                        UseShellExecute = true
+                    };
+                    Process.Start(info);
+                }
+                catch (Win32Exception ex)
+                {
+                    Invoke(new Action(() => DisplayError($"Failed to open URL. Error: {ex.Message}")));
+                }
             }
         }
 
-        private void UploadFile(string fullPath)
+        private void UploadFile(string fullPath, CancellationToken token)
         {
             if (!File.Exists(fullPath))
             {
-                DisplayError($"File {fullPath} does not exist.");
+                Invoke(new Action(() => DisplayError($"File {fullPath} does not exist.")));
                 return;
             }
 
@@ -162,7 +191,11 @@ namespace uploader
             string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
             reportRequest.AddParameter("resource", fileMd5);
 
+            if (token.IsCancellationRequested) return;
+
             var reportResponse = _client.Execute(reportRequest);
+            if (token.IsCancellationRequested) return;
+
             var reportContent = reportResponse.Content;
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
@@ -179,7 +212,11 @@ namespace uploader
                 scanRequest.AddParameter("apikey", _settings.ApiKey);
                 scanRequest.AddFile("file", fullPath);
 
+                if (token.IsCancellationRequested) return;
+
                 var scanResponse = _client.Execute(scanRequest);
+                if (token.IsCancellationRequested) return;
+
                 var scanContent = scanResponse.Content;
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
@@ -188,28 +225,35 @@ namespace uploader
                     string sha256 = scanJson.sha256.ToString();
                     string scanId = scanJson.scan_id.ToString();
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                    var safeSha256 = Uri.EscapeDataString(sha256);
+                    var safeScanId = Uri.EscapeDataString(scanId);
+
+                    var scanLink = $"https://www.virustotal.com/gui/file/{safeSha256}/detection/{safeScanId}";
                     OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)
                 {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+                    Invoke(new Action(() => DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}")));
                 }
             }
         }
 
         private void StartUploadThread()
         {
-            if (_uploadThread != null && _uploadThread.IsAlive)
+            if (_cancellationTokenSource != null)
             {
-                _uploadThread.Abort();
+                _cancellationTokenSource.Cancel();
+                _cancellationTokenSource.Dispose();
+                _cancellationTokenSource = null;
                 uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
                 return;
             }
-            uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
-            _uploadThread = new Thread(Upload);
-            _uploadThread.Start();
+            uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
+            _cancellationTokenSource = new CancellationTokenSource();
+            var token = _cancellationTokenSource.Token;
+
+            _uploadTask = Task.Run(() => Upload(token), token);
         }
 
         private void UploadForm_Load(object sender, EventArgs e)
@@ -245,6 +289,13 @@ namespace uploader
 
         private void UploadForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (_cancellationTokenSource != null)
+            {
+                _cancellationTokenSource.Cancel();
+                _cancellationTokenSource.Dispose();
+                _cancellationTokenSource = null;
+            }
+
             if (_reopen)
             {
                 _mainForm.Show();
