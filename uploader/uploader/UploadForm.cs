@@ -96,35 +96,31 @@ namespace uploader
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                if (!token.IsCancellationRequested)
-                {
-                    Invoke(new Action(() =>
-                    {
-                        using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                        {
-                            messageBox.ShowDialog();
-                        }
-                    }));
-                }
+                ShowErrorDialog(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, token);
                 return false;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                if (!token.IsCancellationRequested)
-                {
-                    Invoke(new Action(() =>
-                    {
-                        using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                        {
-                            messageBox.ShowDialog();
-                        }
-                    }));
-                }
+                ShowErrorDialog(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, token);
                 return false;
             }
 
             return true;
+        }
+
+        private void ShowErrorDialog(string message, string caption, CancellationToken token)
+        {
+            if (!token.IsCancellationRequested)
+            {
+                Invoke(new Action(() =>
+                {
+                    using (var messageBox = new DarkMessageBox(message, caption, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                    {
+                        messageBox.ShowDialog();
+                    }
+                }));
+            }
         }
 
         private void Upload(CancellationToken token)
