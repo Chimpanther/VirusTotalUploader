@@ -88,7 +88,11 @@ namespace uploader
 
         private void Upload(object state)
         {
-            CancellationToken token = (CancellationToken)state;
+            if (!(state is CancellationToken token))
+            {
+                return;
+            }
+
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
                 using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
