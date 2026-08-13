@@ -86,13 +86,8 @@ namespace uploader
             }
         }
 
-        private void Upload(object state)
+        private void Upload(CancellationToken token)
         {
-            if (!(state is CancellationToken token))
-            {
-                return;
-            }
-
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
                 using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
@@ -224,8 +219,8 @@ namespace uploader
             uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
             _cts = new CancellationTokenSource();
-            _uploadThread = new Thread(new ParameterizedThreadStart(Upload));
-            _uploadThread.Start(_cts.Token);
+            _uploadThread = new Thread(() => Upload(_cts.Token));
+            _uploadThread.Start();
         }
 
         private void UploadForm_Load(object sender, EventArgs e)
