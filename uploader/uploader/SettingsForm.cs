@@ -68,8 +68,18 @@ namespace uploader
             var safePath = file.Replace("\"", "\\\"");
             var args = $"/e, /select, \"{safePath}\"";
 
-            var info = new ProcessStartInfo {FileName = "explorer", Arguments = args};
-            Process.Start(info);
+            try
+            {
+                var info = new ProcessStartInfo {FileName = "explorer", Arguments = args, UseShellExecute = true};
+                Process.Start(info);
+            }
+            catch (Exception ex)
+            {
+                using (var messageBox = new DarkMessageBox($"Failed to open settings file location. Error: {ex.Message}", "Error", DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
+            }
         }
 
         private void saveButton_Click(object sender, EventArgs e)
@@ -96,7 +106,18 @@ namespace uploader
 
         private void getApiButton_Click(object sender, EventArgs e)
         {
-            Process.Start("https://developers.virustotal.com/reference");
+            try
+            {
+                var info = new ProcessStartInfo {FileName = "https://developers.virustotal.com/reference", UseShellExecute = true};
+                Process.Start(info);
+            }
+            catch (Exception ex)
+            {
+                using (var messageBox = new DarkMessageBox($"Failed to open URL. Error: {ex.Message}", "Error", DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
+            }
         }
     }
 }

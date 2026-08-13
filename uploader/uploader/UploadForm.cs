@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -22,6 +22,7 @@ namespace uploader
         private readonly string _path;
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
+        private CancellationTokenSource _cts;
         private Thread _uploadThread;
         private RestClient _client;
         private bool _isFolder;
@@ -85,8 +86,9 @@ namespace uploader
             }
         }
 
-        private void Upload()
+        private void Upload(object state)
         {
+            CancellationToken token = (CancellationToken)state;
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
                 using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
@@ -119,6 +121,11 @@ namespace uploader
 
             foreach (var file in _filesToUpload)
             {
+                if (token.IsCancellationRequested)
+                {
+                    Finish(true);
+                    return;
+                }
                 UploadFile(file);
             }
 
@@ -132,16 +139,17 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
-                Process.Start(url);
-                return;
-            }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
-            {
-                Process.Start(url);
-                return;
+                try
+                {
+                    var info = new ProcessStartInfo {FileName = url, UseShellExecute = true};
+                    Process.Start(info);
+                }
+                catch (Exception ex)
+                {
+                    DisplayError($"Failed to open link. Error: {ex.Message}");
+                }
             }
         }
 
@@ -202,14 +210,18 @@ namespace uploader
         {
             if (_uploadThread != null && _uploadThread.IsAlive)
             {
-                _uploadThread.Abort();
+                if (_cts != null)
+                {
+                    _cts.Cancel();
+                }
                 uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
                 return;
             }
             uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
-            _uploadThread = new Thread(Upload);
-            _uploadThread.Start();
+            _cts = new CancellationTokenSource();
+            _uploadThread = new Thread(new ParameterizedThreadStart(Upload));
+            _uploadThread.Start(_cts.Token);
         }
 
         private void UploadForm_Load(object sender, EventArgs e)

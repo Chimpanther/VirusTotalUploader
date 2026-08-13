@@ -27,6 +27,8 @@ namespace uploader.Tests
                     File.Delete(settingsFile);
                 }
 
+                Settings.ClearCache();
+
                 // Act
                 var settings = Settings.LoadSettings();
 
