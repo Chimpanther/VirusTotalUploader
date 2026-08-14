@@ -22,7 +22,7 @@ namespace uploader
         private readonly string _path;
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
-        private Thread _uploadThread;
+        private CancellationTokenSource _cancellationTokenSource;
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
@@ -85,7 +85,7 @@ namespace uploader
             }
         }
 
-        private void Upload()
+        private async Task UploadAsync(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
@@ -117,9 +117,19 @@ namespace uploader
                 _filesToUpload = new List<string> { _path };
             }
 
+            var tasks = new List<Task>();
             foreach (var file in _filesToUpload)
             {
-                UploadFile(file);
+                tasks.Add(UploadFileAsync(file, token));
+            }
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation was requested, do nothing special here.
             }
 
             Finish(true);
@@ -147,13 +157,15 @@ namespace uploader
             }
         }
 
-        private void UploadFile(string fullPath)
+        private async Task UploadFileAsync(string fullPath, CancellationToken token)
         {
             if (!File.Exists(fullPath))
             {
                 DisplayError($"File {fullPath} does not exist.");
                 return;
             }
+
+            token.ThrowIfCancellationRequested();
 
             var fileName = Path.GetFileName(fullPath);
             ChangeStatus($"Checking {fileName}...");
@@ -164,8 +176,11 @@ namespace uploader
             string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
             reportRequest.AddParameter("resource", fileMd5);
 
-            var reportResponse = _client.Execute(reportRequest);
+            var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
+
+            token.ThrowIfCancellationRequested();
+
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
             try
@@ -181,8 +196,11 @@ namespace uploader
                 scanRequest.AddParameter("apikey", _settings.ApiKey);
                 scanRequest.AddFile("file", fullPath);
 
-                var scanResponse = _client.Execute(scanRequest);
+                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
                 var scanContent = scanResponse.Content;
+
+                token.ThrowIfCancellationRequested();
+
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
                 try
@@ -202,16 +220,20 @@ namespace uploader
 
         private void StartUploadThread()
         {
-            if (_uploadThread != null && _uploadThread.IsAlive)
+            if (_cancellationTokenSource != null)
             {
-                _uploadThread.Abort();
+                _cancellationTokenSource.Cancel();
+                _cancellationTokenSource.Dispose();
+                _cancellationTokenSource = null;
                 uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
                 return;
             }
-            uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
-            _uploadThread = new Thread(Upload);
-            _uploadThread.Start();
+            uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            var token = _cancellationTokenSource.Token;
+            Task.Run(async () => await UploadAsync(token));
         }
 
         private void UploadForm_Load(object sender, EventArgs e)
