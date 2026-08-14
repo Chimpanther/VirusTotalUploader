@@ -1,11 +1,49 @@
-using Xunit;
+using System;
 using System.IO;
 using uploader;
+using Xunit;
 
 namespace uploader.Tests
 {
     public class SettingsTests
     {
+        [Fact]
+        public void LoadSettings_MissingFile_ReturnsDefault()
+        {
+            var settingsFile = Settings.GetSettingsFilename();
+
+            // Backup existing if any
+            string? backup = null;
+            if (File.Exists(settingsFile))
+            {
+                backup = File.ReadAllText(settingsFile);
+                File.Delete(settingsFile);
+            }
+
+            try
+            {
+                // Ensure it does not exist
+                Assert.False(File.Exists(settingsFile));
+
+                // Act
+                var settings = Settings.LoadSettings();
+
+                // Assert default properties
+                Assert.NotNull(settings);
+                Assert.Equal("", settings.ApiKey);
+                Assert.Equal("", settings.Language);
+                Assert.False(settings.DirectUpload);
+            }
+            finally
+            {
+                // Restore backup
+                if (backup != null)
+                {
+                    File.WriteAllText(settingsFile, backup);
+                }
+            }
+        }
+
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefaultSettings()
         {
