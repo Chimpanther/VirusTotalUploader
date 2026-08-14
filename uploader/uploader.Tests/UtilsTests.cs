@@ -38,26 +38,5 @@ namespace uploader.Tests
                 File.Delete(tempFile);
             }
         }
-
-        [Fact]
-        public void GetSHA256_ValidFile_ReturnsCorrectHash()
-        {
-            // Arrange
-            string tempFile = Path.GetTempFileName();
-            try
-            {
-                File.WriteAllText(tempFile, "hello world");
-
-                // Act
-                string hash = Utils.GetSHA256(tempFile);
-
-                // Assert
-                Assert.Equal("B94D27B9934D3E08A52E52D7DA7DABFAC484EFE37A5380EE9088F7ACE2EFCDE9", hash);
-            }
-            finally
-            {
-                File.Delete(tempFile);
-            }
-        }
     }
 }

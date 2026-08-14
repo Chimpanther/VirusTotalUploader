@@ -31,11 +31,19 @@ namespace uploader
         {
             using (var stream = File.OpenRead(file))
             {
-                using (var sha = SHA256.Create())
-                {
-                    var checksum = sha.ComputeHash(stream);
-                    return BitConverter.ToString(checksum).Replace("-", string.Empty);
-                }
+                var sha = new SHA256Managed();
+                var checksum = sha.ComputeHash(stream);
+                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+            }
+        }
+
+        public static string GetSHA1(string file)
+        {
+            using (var stream = File.OpenRead(file))
+            {
+                var sha = new SHA1Managed();
+                var checksum = sha.ComputeHash(stream);
+                return BitConverter.ToString(checksum).Replace("-", string.Empty);
             }
         }
     }
