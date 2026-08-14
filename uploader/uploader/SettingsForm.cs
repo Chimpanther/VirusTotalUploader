@@ -64,7 +64,7 @@ namespace uploader
                 statusLabel.Text = LocalizationHelper.Base.Message_NoSettings;
                 return;
             }
-            
+
             var safePath = file.Replace("\"", "\\\"");
             var args = $"/e, /select, \"{safePath}\"";
 
@@ -78,7 +78,7 @@ namespace uploader
 
             var settings = new Settings
             {
-                ApiKey = apiTextbox.Text, 
+                ApiKey = apiTextbox.Text,
                 Language = languageCombo.Text,
                 DirectUpload = directCheckbox.Checked
             };
