@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -37,9 +37,9 @@ namespace uploader
             LocalizationHelper.Update();
         }
 
-        public static Settings LoadSettings(string path = null)
+        public static Settings LoadSettings()
         {
-            var file = path ?? GetSettingsFilename();
+            var file = GetSettingsFilename();
 
             if (!File.Exists(file))
                 return new Settings();
