@@ -1,20 +1,18 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using uploader;
-using System.IO;
 using System;
+using System.IO;
+using uploader;
 using Newtonsoft.Json;
+using Xunit;
 
 namespace uploader.Tests
 {
-    [TestClass]
-    public class SettingsTests
+    public class SettingsTests : IDisposable
     {
-        private string _settingsPath;
-        private string _backupContent;
-        private bool _hadSettings;
+        private readonly string _settingsPath;
+        private readonly string? _backupContent;
+        private readonly bool _hadSettings;
 
-        [TestInitialize]
-        public void Setup()
+        public SettingsTests()
         {
             _settingsPath = Settings.GetSettingsFilename();
             _hadSettings = File.Exists(_settingsPath);
@@ -25,8 +23,7 @@ namespace uploader.Tests
             }
         }
 
-        [TestCleanup]
-        public void Teardown()
+        public void Dispose()
         {
             if (File.Exists(_settingsPath))
             {
@@ -38,7 +35,7 @@ namespace uploader.Tests
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void SaveSettings_WithDefaultLanguage_SetsLanguageToEmptyString()
         {
             // Arrange
@@ -49,10 +46,54 @@ namespace uploader.Tests
 
             // Assert
             var savedSettings = Settings.LoadSettings();
-            Assert.AreEqual("", savedSettings.Language, "Language should be empty string when 'Default' is passed");
+            Assert.Equal("", savedSettings.Language);
 
             var fileContent = File.ReadAllText(_settingsPath);
-            Assert.IsTrue(fileContent.Contains("\"Language\":\"\"") || fileContent.Contains("\"Language\": \"\""), "The JSON file should contain the empty string for Language");
+            Assert.True(fileContent.Contains("\"Language\":\"\"") || fileContent.Contains("\"Language\": \"\""), "The JSON file should contain the empty string for Language");
+        }
+
+        [Fact]
+        public void LoadSettings_MissingFile_ReturnsDefaultSettings()
+        {
+            // Arrange
+            var settingsFile = Settings.GetSettingsFilename();
+            var backupFile = settingsFile + ".bak";
+            bool hadExistingSettings = File.Exists(settingsFile);
+
+            try
+            {
+                if (hadExistingSettings)
+                {
+                    File.Move(settingsFile, backupFile);
+                }
+
+                // Double check that it's gone
+                if (File.Exists(settingsFile))
+                {
+                    File.Delete(settingsFile);
+                }
+
+                // Act
+                var settings = Settings.LoadSettings();
+
+                // Assert
+                Assert.NotNull(settings);
+                Assert.Equal("", settings.ApiKey);
+                Assert.Equal("", settings.Language);
+                Assert.False(settings.DirectUpload);
+            }
+            finally
+            {
+                // Restore
+                if (hadExistingSettings)
+                {
+                    if (File.Exists(settingsFile))
+                    {
+                        File.Delete(settingsFile);
+                    }
+                    File.Move(backupFile, settingsFile);
+                }
+            }
         }
     }
 }
