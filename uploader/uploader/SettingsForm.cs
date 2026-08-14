@@ -84,19 +84,24 @@ namespace uploader
             };
 
             Settings.SaveSettings(settings);
-            using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.Message_Saved, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
-            {
-                messageBox.ShowDialog();
-            }
+            MessageBox.Show(LocalizationHelper.Base.Message_Saved, "Ok", MessageBoxButtons.OK, MessageBoxIcon.Information); // TODO: custom messagebox with dark theme (because default win32 one is annoying)
 
             // Needs full restart to initialize main form strings again
             Application.Restart();
             Environment.Exit(0);
         }
-
         private void getApiButton_Click(object sender, EventArgs e)
         {
-            Process.Start("https://developers.virustotal.com/reference");
+            try
+            {
+                var info = new ProcessStartInfo { FileName = "https://developers.virustotal.com/reference", UseShellExecute = true };
+                Process.Start(info);
+            }
+            catch (Win32Exception)
+            {
+                // No default application associated with the protocol
+            }
         }
+
     }
 }
