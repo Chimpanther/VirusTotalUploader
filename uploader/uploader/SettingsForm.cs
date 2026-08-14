@@ -64,8 +64,9 @@ namespace uploader
                 statusLabel.Text = LocalizationHelper.Base.Message_NoSettings;
                 return;
             }
-            
-            var args = $"/e, /select, \"{Settings.GetSettingsFilename()}\"";
+
+            var safePath = file.Replace("\"", "\\\"");
+            var args = $"/e, /select, \"{safePath}\"";
 
             var info = new ProcessStartInfo {FileName = "explorer", Arguments = args};
             Process.Start(info);
@@ -77,14 +78,16 @@ namespace uploader
 
             var settings = new Settings
             {
-                ApiKey = apiTextbox.Text, 
+                ApiKey = apiTextbox.Text,
                 Language = languageCombo.Text,
                 DirectUpload = directCheckbox.Checked
             };
 
             Settings.SaveSettings(settings);
-            //statusLabel.Text = LocalizationHelper.Base.Message_Saved;
-            MessageBox.Show(LocalizationHelper.Base.Message_Saved, "Ok", MessageBoxButtons.OK, MessageBoxIcon.Information); // TODO: custom messagebox with dark theme (because default win32 one is annoying)
+            using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.Message_Saved, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
 
             // Needs full restart to initialize main form strings again
             Application.Restart();
