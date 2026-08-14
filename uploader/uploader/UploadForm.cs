@@ -27,6 +27,7 @@ namespace uploader
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
+        private string _cachedMd5;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -79,53 +80,31 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            if (InvokeRequired)
-            {
-                this.Invoke(new Action(() => DisplayError(error)));
-                return;
-            }
-
             using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
             }
         }
 
-        private void ShowInvalidKeyError()
-        {
-            if (InvokeRequired)
-            {
-                this.Invoke(new Action(ShowInvalidKeyError));
-                return;
-            }
-            MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-
-        private void ShowInvalidLengthError()
-        {
-            if (InvokeRequired)
-            {
-                this.Invoke(new Action(ShowInvalidLengthError));
-                return;
-            }
-            MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-
         private async Task UploadAsync(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                DisplayError(LocalizationHelper.Base.UploadForm_NoApiKey);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 Finish(true);
-                ShowInvalidKeyError();
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                DisplayError(LocalizationHelper.Base.UploadForm_InvalidLength);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 Finish(true);
-                ShowInvalidLengthError();
                 return;
             }
 
@@ -155,18 +134,16 @@ namespace uploader
                 return;
             }
 
-            try
+            if (uri.Scheme == Uri.UriSchemeHttp)
             {
-                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-                {
-                    Process.Start(url);
-                }
+                Process.Start(url);
+                return;
             }
-            catch (Exception ex)
+
+            if (uri.Scheme == Uri.UriSchemeHttps)
             {
-                // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
-                // Silently ignoring is safer than crashing the background thread.
-                Debug.WriteLine($"Failed to open URL: {ex.Message}");
+                Process.Start(url);
+                return;
             }
         }
 
@@ -219,6 +196,9 @@ namespace uploader
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
+            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
+            reportRequest.AddParameter("resource", fileMd5);
+
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             if (token.IsCancellationRequested) return;
 
@@ -268,7 +248,8 @@ namespace uploader
             }
             else
             {
-                mdTextbox.Text = Utils.GetMD5(_path);
+                _cachedMd5 = Utils.GetMD5(_path);
+                mdTextbox.Text = _cachedMd5;
                 shaTextbox.Text = Utils.GetSHA1(_path);
                 sha2Textbox.Text = Utils.GetSHA256(_path);
             }
