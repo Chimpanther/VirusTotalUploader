@@ -19,21 +19,22 @@ namespace uploader
     public partial class UploadForm : DarkForm
     {
         private readonly bool _reopen;
-        private readonly List<string> _paths;
+        private readonly string _path;
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
         private Thread _uploadThread;
         private RestClient _client;
-
+        private bool _isFolder;
         private List<string> _filesToUpload;
+        private string _cachedMd5;
 
-        public UploadForm(MainForm mainForm, Settings settings, bool reopen, List<string> paths)
+        public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
-            _paths = paths;
+            _path = path;
             _mainForm = mainForm;
             _settings = settings;
             _reopen = reopen;
-
+            _isFolder = Directory.Exists(_path);
 
             InitializeComponent();
         }
@@ -78,38 +79,42 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
+            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
         }
 
         private void Upload()
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 return;
             }
 
             ChangeStatus(LocalizationHelper.Base.Message_Init);
             _client = new RestClient("https://www.virustotal.com");
 
-            _filesToUpload = new List<string>();
-            foreach (var path in _paths)
+            if (_isFolder)
             {
-                if (Directory.Exists(path))
-                {
-                    _filesToUpload.AddRange(Directory.GetFiles(path, "*.*", SearchOption.AllDirectories));
-                }
-                else
-                {
-                    _filesToUpload.Add(path);
-                }
+                _filesToUpload = Directory.GetFiles(_path, "*.*", SearchOption.AllDirectories).ToList();
+            }
+            else
+            {
+                _filesToUpload = new List<string> { _path };
             }
 
             foreach (var file in _filesToUpload)
@@ -153,6 +158,9 @@ namespace uploader
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
+
+            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
+            reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = _client.Execute(reportRequest);
             var reportContent = reportResponse.Content;
@@ -206,17 +214,18 @@ namespace uploader
 
         private void UploadForm_Load(object sender, EventArgs e)
         {
-            if (_paths.Count == 1 && !Directory.Exists(_paths[0]))
+            if (_isFolder)
             {
-                mdTextbox.Text = Utils.GetMD5(_paths[0]);
-                shaTextbox.Text = Utils.GetSHA1(_paths[0]);
-                sha2Textbox.Text = Utils.GetSHA256(_paths[0]);
+                mdTextbox.Text = "N/A (Folder)";
+                shaTextbox.Text = "N/A (Folder)";
+                sha2Textbox.Text = "N/A (Folder)";
             }
             else
             {
-                mdTextbox.Text = "N/A (Multiple files/Folder)";
-                shaTextbox.Text = "N/A (Multiple files/Folder)";
-                sha2Textbox.Text = "N/A (Multiple files/Folder)";
+                _cachedMd5 = Utils.GetMD5(_path);
+                mdTextbox.Text = _cachedMd5;
+                shaTextbox.Text = Utils.GetSHA1(_path);
+                sha2Textbox.Text = Utils.GetSHA256(_path);
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;

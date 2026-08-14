@@ -25,7 +25,7 @@ namespace uploader
             {
                 settings.Language = "";
             }
-            
+
             var serialized = JsonConvert.SerializeObject(settings);
             var file = GetSettingsFilename();
 
