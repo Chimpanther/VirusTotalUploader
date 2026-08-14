@@ -26,6 +26,7 @@ namespace uploader
 
         public static string GetSHA256(string file)
         {
+<<<<<<< HEAD
             using (var sha = SHA256.Create())
             {
                 using (var stream = File.OpenRead(file))
@@ -33,11 +34,19 @@ namespace uploader
                     var checksum = sha.ComputeHash(stream);
                     return BitConverter.ToString(checksum).Replace("-", string.Empty);
                 }
+=======
+            using (var stream = File.OpenRead(file))
+            {
+                var sha = new SHA256Managed();
+                var checksum = sha.ComputeHash(stream);
+                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+>>>>>>> origin/master
             }
         }
 
         public static string GetSHA1(string file)
         {
+<<<<<<< HEAD
             using (var sha = SHA1.Create())
             {
                 using (var stream = File.OpenRead(file))
@@ -45,6 +54,13 @@ namespace uploader
                     var checksum = sha.ComputeHash(stream);
                     return BitConverter.ToString(checksum).Replace("-", string.Empty);
                 }
+=======
+            using (var stream = File.OpenRead(file))
+            {
+                var sha = new SHA1Managed();
+                var checksum = sha.ComputeHash(stream);
+                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+>>>>>>> origin/master
             }
         }
     }
