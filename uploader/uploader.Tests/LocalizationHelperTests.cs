@@ -1,13 +1,12 @@
-using NUnit.Framework;
 using System.IO;
 using uploader;
+using Xunit;
 
 namespace uploader.Tests
 {
-    [TestFixture]
     public class LocalizationHelperTests
     {
-        [Test]
+        [Fact]
         public void GetLanguages_DirectoryDoesNotExist_ReturnsFallbackArray()
         {
             // Ensure the directory doesn't exist
@@ -24,9 +23,9 @@ namespace uploader.Tests
                 string[] result = LocalizationHelper.GetLanguages();
 
                 // Assert
-                Assert.That(result, Is.Not.Null);
-                Assert.That(result.Length, Is.EqualTo(1));
-                Assert.That(result[0], Is.EqualTo(""));
+                Assert.NotNull(result);
+                Assert.Equal(1, result.Length);
+                Assert.Equal("", result[0]);
             }
             finally
             {

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace uploader
 {
-    public class LocalizationBase
+    class LocalizationBase
     {
         public string MainForm_DragFile = "Drag file here";
         public string MainForm_More = "More";

@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 namespace uploader
 {
-    public class LocalizationHelper
+    internal class LocalizationHelper
     {
         private const string LocalFolder = "local";
         public static LocalizationBase Base;
