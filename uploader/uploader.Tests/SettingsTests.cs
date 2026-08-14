@@ -55,7 +55,7 @@ namespace uploader.Tests
             Assert.Equal("", loadedSettings.Language);
             Assert.True(loadedSettings.DirectUpload);
 
-            Assert.NotNull(LocalizationHelper.Base, "LocalizationHelper.Base should be initialized");
+            Assert.NotNull(LocalizationHelper.Base);
         }
 
         [Fact]
@@ -75,7 +75,7 @@ namespace uploader.Tests
 
             Settings.SaveSettings(settings);
 
-            Assert.NotNull(LocalizationHelper.Base, "LocalizationHelper.Base should be initialized when language is empty");
+            Assert.NotNull(LocalizationHelper.Base);
         }
 
         [Fact]
