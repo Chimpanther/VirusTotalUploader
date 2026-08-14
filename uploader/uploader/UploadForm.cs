@@ -146,14 +146,6 @@ namespace uploader
             }
         }
 
-        private void UploadFile(string fullPath)
-        {
-            if (!File.Exists(fullPath))
-            {
-                DisplayError($"File {fullPath} does not exist.");
-                return;
-            }
-
         private class VTReport
         {
             [JsonProperty("permalink")]
@@ -188,11 +180,7 @@ namespace uploader
 
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
             reportRequest.AddParameter("resource", resourceString);
-
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
-            reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = _client.Execute(reportRequest);
             var reports = ParseReports(reportResponse.Content);
@@ -212,8 +200,6 @@ namespace uploader
 
             try
             {
-                var reportLink = reportJson.permalink.ToString();
-                OpenUrlSafe(reportLink);
                 var parsedToken = Newtonsoft.Json.Linq.JToken.Parse(content);
                 var reports = new List<VTReport>();
                 if (parsedToken is Newtonsoft.Json.Linq.JArray)
@@ -250,8 +236,6 @@ namespace uploader
                 }
             }
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    OpenUrlSafe(scanLink);
             if (!hasPermalink)
             {
                 ScanFile(file);
