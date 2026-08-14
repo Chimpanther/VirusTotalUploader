@@ -170,6 +170,19 @@ namespace uploader
 
             var fileName = Path.GetFileName(fullPath);
             ChangeStatus($"Checking {fileName}...");
+
+            if (CheckFileReport(fullPath, fileName))
+            {
+                return;
+            }
+
+            if (token.IsCancellationRequested) return;
+
+            ScanNewFile(fullPath, fileName);
+        }
+
+        private bool CheckFileReport(string fullPath, string fileName)
+        {
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
@@ -181,8 +194,9 @@ namespace uploader
             if (reportResponse.StatusCode != System.Net.HttpStatusCode.OK)
             {
                 DisplayError($"VT API returned {reportResponse.StatusCode}");
-                return;
+                return true; // Stop processing on error
             }
+
             var reportContent = reportResponse.Content;
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
@@ -190,36 +204,42 @@ namespace uploader
             {
                 var reportLink = reportJson.permalink.ToString();
                 OpenUrlSafe(reportLink);
+                return true;
             }
             catch (RuntimeBinderException)
             {
-                // Json does not contain permalink which means it's a new file (or the request failed)
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
+                return false;
+            }
+        }
 
-                var scanResponse = _client.Execute(scanRequest);
-                if (scanResponse.StatusCode != System.Net.HttpStatusCode.OK)
-                {
-                    DisplayError($"VT API returned {scanResponse.StatusCode}");
-                    return;
-                }
-                var scanContent = scanResponse.Content;
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+        private void ScanNewFile(string fullPath, string fileName)
+        {
+            ChangeStatus($"Uploading {fileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _settings.ApiKey);
+            scanRequest.AddFile("file", fullPath);
 
-                try
-                {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
+            var scanResponse = _client.Execute(scanRequest);
+            if (scanResponse.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                DisplayError($"VT API returned {scanResponse.StatusCode}");
+                return;
+            }
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    OpenUrlSafe(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
-                }
+            var scanContent = scanResponse.Content;
+            dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+
+            try
+            {
+                string sha256 = scanJson.sha256.ToString();
+                string scanId = scanJson.scan_id.ToString();
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
             }
         }
 

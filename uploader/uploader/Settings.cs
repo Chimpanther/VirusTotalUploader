@@ -14,9 +14,7 @@ namespace uploader
         public string Language = "";
         public bool DirectUpload = false;
 
-#pragma warning disable CS8632
-        private static Settings? _cachedSettings = null;
-#pragma warning restore CS8632
+private static Settings _cachedSettings = null;
         private static readonly object _cacheLock = new object();
 
         public static string GetSettingsFilename()
