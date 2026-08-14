@@ -1,28 +1,24 @@
-
 using System.IO;
 using System;
 using Newtonsoft.Json;
 using uploader;
+using Xunit;
 
 namespace uploader.Tests
 {
-    [TestClass]
-    [DoNotParallelize]
-    public class LocalizationHelperTests
+    public class LocalizationHelperTests : IDisposable
     {
         private string? _settingsPath;
         private string? _testLanguageFile;
 
-        [TestInitialize]
-        public void Setup()
+        public LocalizationHelperTests()
         {
             // Use a temporary path for the tests so it doesn't destructively touch %APPDATA%
             _settingsPath = Path.Combine(Path.GetTempPath(), $"vtu_settings_test_{Guid.NewGuid()}.json");
             _testLanguageFile = Path.Combine(Path.GetTempPath(), $"test_lang_{Guid.NewGuid()}.json");
         }
 
-        [TestCleanup]
-        public void Cleanup()
+        public void Dispose()
         {
             if (_settingsPath != null && File.Exists(_settingsPath))
             {
@@ -38,16 +34,16 @@ namespace uploader.Tests
             LocalizationHelper.Base = null!;
         }
 
-        [TestMethod]
+        [Fact]
         public void Update_WithNoSettings_SetsBaseToNewInstance()
         {
             LocalizationHelper.Update(_settingsPath);
 
-            MSTestAssert.IsNotNull(LocalizationHelper.Base);
-            MSTestAssert.AreEqual("Settings", LocalizationHelper.Base.SettingsForm_Title); // Verify default
+            Xunit.Assert.NotNull(LocalizationHelper.Base);
+            Xunit.Assert.Equal("Settings", LocalizationHelper.Base.SettingsForm_Title); // Verify default
         }
 
-        [TestMethod]
+        [Fact]
         public void Update_WithEmptyLanguage_SetsBaseToNewInstance()
         {
             // Create settings with empty language
@@ -58,11 +54,11 @@ namespace uploader.Tests
 
             LocalizationHelper.Update(_settingsPath);
 
-            MSTestAssert.IsNotNull(LocalizationHelper.Base);
-            MSTestAssert.AreEqual("Settings", LocalizationHelper.Base.SettingsForm_Title);
+            Xunit.Assert.NotNull(LocalizationHelper.Base);
+            Xunit.Assert.Equal("Settings", LocalizationHelper.Base.SettingsForm_Title);
         }
 
-        [TestMethod]
+        [Fact]
         public void Update_WithValidLanguage_LoadsLocalization()
         {
             // Create a test localization file
@@ -79,8 +75,8 @@ namespace uploader.Tests
 
             LocalizationHelper.Update(_settingsPath);
 
-            MSTestAssert.IsNotNull(LocalizationHelper.Base);
-            MSTestAssert.AreEqual("Custom Settings Title", LocalizationHelper.Base.SettingsForm_Title);
+            Xunit.Assert.NotNull(LocalizationHelper.Base);
+            Xunit.Assert.Equal("Custom Settings Title", LocalizationHelper.Base.SettingsForm_Title);
         }
     }
 }
