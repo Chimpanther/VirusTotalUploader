@@ -53,6 +53,7 @@ namespace uploader
             this.Text = LocalizationHelper.Base.SettingsForm_Title;
             directCheckbox.Text = LocalizationHelper.Base.SettingsForm_DirectUpload;
 
+            //LocalizationHelper.Export();
         }
 
         private void darkButton1_Click(object sender, EventArgs e)
@@ -63,7 +64,7 @@ namespace uploader
                 statusLabel.Text = LocalizationHelper.Base.Message_NoSettings;
                 return;
             }
-            
+
             var safePath = file.Replace("\"", "\\\"");
             var args = $"/e, /select, \"{safePath}\"";
 
@@ -77,7 +78,7 @@ namespace uploader
 
             var settings = new Settings
             {
-                ApiKey = apiTextbox.Text, 
+                ApiKey = apiTextbox.Text,
                 Language = languageCombo.Text,
                 DirectUpload = directCheckbox.Checked
             };
@@ -92,18 +93,10 @@ namespace uploader
             Application.Restart();
             Environment.Exit(0);
         }
+
         private void getApiButton_Click(object sender, EventArgs e)
         {
-            try
-            {
-                var info = new ProcessStartInfo { FileName = "https://developers.virustotal.com/reference", UseShellExecute = true };
-                Process.Start(info);
-            }
-            catch (Win32Exception)
-            {
-                // No default application associated with the protocol
-            }
+            Process.Start("https://developers.virustotal.com/reference");
         }
-
     }
 }
