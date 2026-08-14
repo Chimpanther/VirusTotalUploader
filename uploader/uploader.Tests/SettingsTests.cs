@@ -1,19 +1,16 @@
 using System;
 using System.IO;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using uploader;
-using Newtonsoft.Json;
+using Xunit;
 
 namespace uploader.Tests
 {
-    [TestClass]
-    public class SettingsTests
+    public class SettingsTests : IDisposable
     {
-        private string? settingsFile;
-        private string? backupFile;
+        private readonly string settingsFile;
+        private readonly string backupFile;
 
-        [TestInitialize]
-        public void Setup()
+        public SettingsTests()
         {
             settingsFile = Settings.GetSettingsFilename();
             backupFile = settingsFile + ".bak";
@@ -24,24 +21,20 @@ namespace uploader.Tests
             }
         }
 
-        [TestCleanup]
-        public void Cleanup()
+        public void Dispose()
         {
-            if (backupFile != null && settingsFile != null)
+            if (File.Exists(backupFile))
             {
-                if (File.Exists(backupFile))
-                {
-                    File.Copy(backupFile, settingsFile, true);
-                    File.Delete(backupFile);
-                }
-                else if (File.Exists(settingsFile))
-                {
-                    File.Delete(settingsFile);
-                }
+                File.Copy(backupFile, settingsFile, true);
+                File.Delete(backupFile);
+            }
+            else if (File.Exists(settingsFile))
+            {
+                File.Delete(settingsFile);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void SaveSettings_ShouldSaveFile_AndClearDefaultLanguage()
         {
             var settings = new Settings
@@ -53,19 +46,19 @@ namespace uploader.Tests
 
             Settings.SaveSettings(settings);
 
-            Assert.IsTrue(File.Exists(settingsFile), "Settings file should be created");
-            Assert.AreEqual("", settings.Language, "Language containing 'Default' should be cleared in the object");
+            Assert.True(File.Exists(settingsFile), "Settings file should be created");
+            Assert.Equal("", settings.Language, "Language containing 'Default' should be cleared in the object");
 
             var loadedSettings = Settings.LoadSettings();
-            Assert.IsNotNull(loadedSettings);
-            Assert.AreEqual("1234567890123456789012345678901234567890123456789012345678901234", loadedSettings.ApiKey);
-            Assert.AreEqual("", loadedSettings.Language);
-            Assert.IsTrue(loadedSettings.DirectUpload);
+            Assert.NotNull(loadedSettings);
+            Assert.Equal("1234567890123456789012345678901234567890123456789012345678901234", loadedSettings.ApiKey);
+            Assert.Equal("", loadedSettings.Language);
+            Assert.True(loadedSettings.DirectUpload);
 
-            Assert.IsNotNull(LocalizationHelper.Base, "LocalizationHelper.Base should be initialized");
+            Assert.NotNull(LocalizationHelper.Base, "LocalizationHelper.Base should be initialized");
         }
 
-        [TestMethod]
+        [Fact]
         public void SaveSettings_ShouldUpdateLocalizationHelper()
         {
             var settings = new Settings
@@ -82,10 +75,10 @@ namespace uploader.Tests
 
             Settings.SaveSettings(settings);
 
-            Assert.IsNotNull(LocalizationHelper.Base, "LocalizationHelper.Base should be initialized when language is empty");
+            Assert.NotNull(LocalizationHelper.Base, "LocalizationHelper.Base should be initialized when language is empty");
         }
 
-        [TestMethod]
+        [Fact]
         public void SaveSettings_OverwritesExistingFile()
         {
             // Create initial file
@@ -108,9 +101,53 @@ namespace uploader.Tests
             Settings.SaveSettings(updatedSettings);
 
             var loadedSettings = Settings.LoadSettings();
-            Assert.IsNotNull(loadedSettings);
-            Assert.AreEqual("updated_key", loadedSettings.ApiKey);
-            Assert.IsTrue(loadedSettings.DirectUpload);
+            Assert.NotNull(loadedSettings);
+            Assert.Equal("updated_key", loadedSettings.ApiKey);
+            Assert.True(loadedSettings.DirectUpload);
+        }
+
+        [Fact]
+        public void LoadSettings_MissingFile_ReturnsDefaultSettings()
+        {
+            // Arrange
+            var file = Settings.GetSettingsFilename();
+            var bak = file + ".bak";
+            bool hadExistingSettings = File.Exists(file);
+
+            try
+            {
+                if (hadExistingSettings)
+                {
+                    File.Move(file, bak);
+                }
+
+                // Double check that it's gone
+                if (File.Exists(file))
+                {
+                    File.Delete(file);
+                }
+
+                // Act
+                var settings = Settings.LoadSettings();
+
+                // Assert
+                Assert.NotNull(settings);
+                Assert.Equal("", settings.ApiKey);
+                Assert.Equal("", settings.Language);
+                Assert.False(settings.DirectUpload);
+            }
+            finally
+            {
+                // Restore
+                if (hadExistingSettings)
+                {
+                    if (File.Exists(file))
+                    {
+                        File.Delete(file);
+                    }
+                    File.Move(bak, file);
+                }
+            }
         }
     }
 }
