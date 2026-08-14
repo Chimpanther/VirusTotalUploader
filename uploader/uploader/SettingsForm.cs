@@ -64,8 +64,14 @@ namespace uploader
                 statusLabel.Text = LocalizationHelper.Base.Message_NoSettings;
                 return;
             }
+<<<<<<< HEAD
             
             var args = $"/e, /select, \"{Settings.GetSettingsFilename()}\"";
+=======
+
+            var safePath = file.Replace("\"", "\\\"");
+            var args = $"/e, /select, \"{safePath}\"";
+>>>>>>> origin/master
 
             var info = new ProcessStartInfo {FileName = "explorer", Arguments = args};
             Process.Start(info);
@@ -77,7 +83,7 @@ namespace uploader
 
             var settings = new Settings
             {
-                ApiKey = apiTextbox.Text, 
+                ApiKey = apiTextbox.Text,
                 Language = languageCombo.Text,
                 DirectUpload = directCheckbox.Checked
             };
