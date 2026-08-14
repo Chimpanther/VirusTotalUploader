@@ -11,8 +11,8 @@ namespace uploader
     internal class LocalizationHelper
     {
         private const string LocalFolder = "local";
-        public static LocalizationBase Base;
-        
+        public static LocalizationBase Base = new LocalizationBase();
+
         public static string[] GetLanguages()
         {
             return Directory.Exists(LocalFolder) ? Directory.GetFiles(LocalFolder) : new []{ "" };
@@ -21,7 +21,11 @@ namespace uploader
         public static void Load(string path)
         {
             var context = File.ReadAllText(path);
-            Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
+            var deserialized = JsonConvert.DeserializeObject<LocalizationBase>(context);
+            if (deserialized != null)
+            {
+                Base = deserialized;
+            }
         }
 
         public static void Update()

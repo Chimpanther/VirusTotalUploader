@@ -22,7 +22,7 @@ namespace uploader
         private readonly string _path;
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
-        private Thread _uploadThread;
+        private CancellationTokenSource _uploadCts;
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
@@ -79,29 +79,39 @@ namespace uploader
 
         private void DisplayError(string error)
         {
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
             using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
             }
         }
 
-        private void Upload()
+        private void Upload(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                {
-                    messageBox.ShowDialog();
-                }
+                this.Invoke(new Action(() => {
+                    using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                    {
+                        messageBox.ShowDialog();
+                    }
+                }));
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                {
-                    messageBox.ShowDialog();
-                }
+                this.Invoke(new Action(() => {
+                    using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                    {
+                        messageBox.ShowDialog();
+                    }
+                }));
                 return;
             }
 
@@ -119,9 +129,11 @@ namespace uploader
 
             foreach (var file in _filesToUpload)
             {
-                UploadFile(file);
+                if (token.IsCancellationRequested) return;
+                UploadFile(file, token);
             }
 
+            if (token.IsCancellationRequested) return;
             Finish(true);
         }
 
@@ -132,20 +144,23 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
-                Process.Start(url);
-                return;
-            }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
-            {
-                Process.Start(url);
-                return;
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = url,
+                        UseShellExecute = true
+                    });
+                }
+                catch (System.ComponentModel.Win32Exception)
+                {
+                }
             }
         }
 
-        private void UploadFile(string fullPath)
+        private void UploadFile(string fullPath, CancellationToken token)
         {
             if (!File.Exists(fullPath))
             {
@@ -163,6 +178,11 @@ namespace uploader
             reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = _client.Execute(reportRequest);
+            if (reportResponse.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                DisplayError($"VT API returned {reportResponse.StatusCode}");
+                return;
+            }
             var reportContent = reportResponse.Content;
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
@@ -180,6 +200,11 @@ namespace uploader
                 scanRequest.AddFile("file", fullPath);
 
                 var scanResponse = _client.Execute(scanRequest);
+                if (scanResponse.StatusCode != System.Net.HttpStatusCode.OK)
+                {
+                    DisplayError($"VT API returned {scanResponse.StatusCode}");
+                    return;
+                }
                 var scanContent = scanResponse.Content;
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
@@ -200,16 +225,18 @@ namespace uploader
 
         private void StartUploadThread()
         {
-            if (_uploadThread != null && _uploadThread.IsAlive)
+            if (_uploadCts != null && !_uploadCts.IsCancellationRequested)
             {
-                _uploadThread.Abort();
+                _uploadCts.Cancel();
                 uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
                 return;
             }
             uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
-            _uploadThread = new Thread(Upload);
-            _uploadThread.Start();
+            _uploadCts = new CancellationTokenSource();
+            var token = _uploadCts.Token;
+
+            Task.Run(() => Upload(token), token);
         }
 
         private void UploadForm_Load(object sender, EventArgs e)
@@ -245,6 +272,11 @@ namespace uploader
 
         private void UploadForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (_uploadCts != null && !_uploadCts.IsCancellationRequested)
+            {
+                _uploadCts.Cancel();
+            }
+
             if (_reopen)
             {
                 _mainForm.Show();

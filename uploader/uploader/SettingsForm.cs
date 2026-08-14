@@ -69,7 +69,13 @@ namespace uploader
             var args = $"/e, /select, \"{safePath}\"";
 
             var info = new ProcessStartInfo {FileName = "explorer", Arguments = args};
-            Process.Start(info);
+            try
+            {
+                Process.Start(info);
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+            }
         }
 
         private void saveButton_Click(object sender, EventArgs e)
@@ -96,7 +102,17 @@ namespace uploader
 
         private void getApiButton_Click(object sender, EventArgs e)
         {
-            Process.Start("https://developers.virustotal.com/reference");
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://developers.virustotal.com/reference",
+                    UseShellExecute = true
+                });
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+            }
         }
     }
 }

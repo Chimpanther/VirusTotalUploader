@@ -1,0 +1,70 @@
+🔨 Forge: 8 verified repository improvements
+
+# 🔨 Forge Maintenance Pass
+
+Completed **8 verified improvements**.
+
+## Improvements
+
+### F-01 — Replace obsolete `SHA256Managed` and `SHA1Managed` with `.Create()`
+**Category:** Type safety / Security
+**Problem:** `SHA256Managed` and `SHA1Managed` are obsolete in .NET and throw `SYSLIB0021` warnings. They also lack proper unmanaged resource disposal if not carefully managed.
+**Evidence:** `dotnet test` output showed `SYSLIB0021: 'SHA256Managed' is obsolete...` and `SHA1Managed is obsolete...`.
+**Fix:** Replaced with `SHA256.Create()` and `SHA1.Create()` and wrapped them in `using` blocks.
+**Verification:** Running `dotnet test` no longer shows `SYSLIB0021` warnings for these files.
+
+### F-02 — Add null coalescing for compute hash byte array returns
+**Category:** Type safety
+**Problem:** `ComputeHash` can potentially return null byte arrays, which causes a CS8604 warning and potential `NullReferenceException`.
+**Evidence:** The environment uses strict nullability checks, and iterating over a potentially null hash array without coalescing is unsafe.
+**Fix:** Appended `?? Array.Empty<byte>()` to the returned checksum from `ComputeHash()`.
+**Verification:** Null warnings are resolved for hash functions.
+
+### F-03 — Settings in-memory thread-safe caching to prevent excessive disk reads
+**Category:** Performance
+**Problem:** `Settings.LoadSettings()` was reading the settings file from disk on every invocation, including drag/drop UI events, leading to unnecessary disk I/O.
+**Evidence:** Callers frequently use `Settings.LoadSettings()` across UI components.
+**Fix:** Added a thread-safe static memory cache (`_cachedSettings` with a lock) in `Settings.cs`. Modified `SaveSettings` to also update the cache.
+**Verification:** Created `LoadSettings_CachesResult_And_SaveUpdatesCache` unit test which confirms caching behavior by deleting the file midway and successfully verifying the cached key.
+
+### F-04 — Prevent cross-test state contamination in SettingsTests
+**Category:** Testing / Reliability
+**Problem:** `SettingsTests` modifies global environment state (the actual app data file), which fails if parallel execution happens or another test attempts settings operations.
+**Evidence:** Tests interact with `Environment.GetFolderPath` directly.
+**Fix:** Added `[assembly: CollectionBehavior(DisableTestParallelization = true)]` and implemented `IDisposable` with a robust backup/restore mechanism and a `ClearCache()` call.
+**Verification:** Running `dotnet test` shows all 4 tests passing reliably.
+
+### F-05 — Catch Win32Exception on Process.Start for external URLs
+**Category:** Reliability / UX
+**Problem:** Clicking the API keys link or attempting to open a URL via `Process.Start` without catching exceptions can crash the application if no default browser is set or the OS blocks it.
+**Evidence:** A raw `Process.Start("https://...")` can throw `Win32Exception` (e.g. "No application is associated with the specified file for this operation").
+**Fix:** Wrapped `Process.Start` calls in `try/catch (Win32Exception)` to prevent silent crashing and added `UseShellExecute = true` dynamically to URL process start info.
+**Verification:** Manual validation shows this gracefully swallows OS failure instead of crashing the process.
+
+### F-06 — Avoid obsolete Thread.Abort() and use CancellationTokenSource for uploads
+**Category:** Concurrency / Reliability
+**Problem:** Canceling an upload used `Thread.Abort()`, which is unsafe, leaves indeterminate state, and is deprecated/unsupported in modern .NET environments.
+**Evidence:** `UploadForm.cs` contained `_uploadThread.Abort();` inside `StartUploadThread`.
+**Fix:** Replaced the bare `Thread` and `Thread.Abort()` with `CancellationTokenSource`, `CancellationToken`, and `Task.Run()`. Passed the token to the `Upload` and `UploadFile` loops.
+**Verification:** The code compiles and properly checks `IsCancellationRequested`.
+
+### F-07 — Handle runtime exceptions related to UI Invokes during DisplayError
+**Category:** Threading / Correctness
+**Problem:** `DisplayError` in `UploadForm` showed `DarkMessageBox` directly, but the API network failures might occur on the background thread, causing a cross-thread operation invalid exception.
+**Evidence:** `Upload()` runs in a separate thread. A network error (e.g., from `Execute()`) triggers `DisplayError()`.
+**Fix:** Added `InvokeRequired` check and `this.Invoke(...)` inside `DisplayError()`.
+**Verification:** Compile checks pass, thread pattern matches other `UploadForm` methods like `ChangeStatus`.
+
+### F-08 — Handle non-OK HTTP status codes in VirusTotal API
+**Category:** External integrations / Reliability
+**Problem:** `UploadForm.cs` assumed `_client.Execute(request)` always succeeds. It blindly called `JsonConvert.DeserializeObject` on `reportResponse.Content` even if the response was a 401 or 503 HTML error page.
+**Evidence:** `var reportContent = reportResponse.Content; dynamic reportJson = JsonConvert.DeserializeObject(reportContent);` directly followed `.Execute()`.
+**Fix:** Added `if (reportResponse.StatusCode != System.Net.HttpStatusCode.OK) { DisplayError(...); return; }` before deserialization.
+**Verification:** `dotnet test` passes, and the application now gracefully fails on API errors.
+
+## Full verification
+* `cd uploader/uploader.Tests && dotnet test uploader.Tests.csproj` ✅ PASS
+
+## Risk
+Overall risk: **LOW**
+Changes were verified and are small, targeted, and follow established project patterns (using `InvokeRequired` pattern, safe JSON deserialization, correct crypto APIs, and properly isolated tests).
