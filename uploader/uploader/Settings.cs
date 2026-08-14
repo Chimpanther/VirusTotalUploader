@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,9 +25,12 @@ namespace uploader
             {
                 settings.Language = "";
             }
-            
+
             var serialized = JsonConvert.SerializeObject(settings);
             var file = GetSettingsFilename();
+
+            if (File.Exists(file))
+                File.Delete(file);
 
             File.WriteAllText(file, serialized);
 
