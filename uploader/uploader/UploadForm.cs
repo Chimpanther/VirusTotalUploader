@@ -79,42 +79,32 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-<<<<<<< HEAD
-            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
-=======
             using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
             }
->>>>>>> origin/master
+
         }
 
         private void Upload()
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-<<<<<<< HEAD
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
-=======
                 using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
                 {
                     messageBox.ShowDialog();
                 }
->>>>>>> origin/master
+
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-<<<<<<< HEAD
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
-=======
                 using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
                 {
                     messageBox.ShowDialog();
                 }
->>>>>>> origin/master
+
                 return;
             }
 
@@ -138,8 +128,6 @@ namespace uploader
             Finish(true);
         }
 
-<<<<<<< HEAD
-=======
         private void OpenUrlSafe(string url)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
@@ -160,7 +148,7 @@ namespace uploader
             }
         }
 
->>>>>>> origin/master
+
         private void UploadFile(string fullPath)
         {
             if (!File.Exists(fullPath))
