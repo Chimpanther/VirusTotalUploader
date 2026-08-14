@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -33,6 +33,7 @@ namespace uploader
             {
                 settings.Language = "";
             }
+
             // Do not save the plaintext key
             settings.ObsoletePlaintextApiKey = "";
 
