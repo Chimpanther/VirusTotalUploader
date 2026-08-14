@@ -1,23 +1,25 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Linq;
 using uploader;
+using Xunit;
 
 namespace uploader.Tests
 {
-    [TestClass]
-    public class LocalizationHelperTests
+    public class LocalizationHelperTests : System.IDisposable
     {
         private const string LocalFolder = "local";
 
-        [TestInitialize]
-        public void Setup()
+        public LocalizationHelperTests()
         {
             Cleanup();
         }
 
-        [TestCleanup]
-        public void Cleanup()
+        public void Dispose()
+        {
+            Cleanup();
+        }
+
+        private void Cleanup()
         {
             if (Directory.Exists(LocalFolder))
             {
@@ -25,19 +27,19 @@ namespace uploader.Tests
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void GetLanguages_DirectoryDoesNotExist_ReturnsArrayWithEmptyString()
         {
             // Act
             var result = LocalizationHelper.GetLanguages();
 
             // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual(1, result.Length);
-            Assert.AreEqual("", result[0]);
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Length);
+            Assert.Equal("", result[0]);
         }
 
-        [TestMethod]
+        [Fact]
         public void GetLanguages_DirectoryExists_ReturnsFiles()
         {
             // Arrange
@@ -51,11 +53,11 @@ namespace uploader.Tests
             var result = LocalizationHelper.GetLanguages();
 
             // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual(2, result.Length);
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Length);
             // Result paths will have platform specific path separators, but Directory.GetFiles
             // returns them exactly as constructed if they are in the working directory.
-            CollectionAssert.AreEquivalent(new[] { file1, file2 }, result);
+            Assert.Equal(new[] { file1, file2 }.OrderBy(x => x), result.OrderBy(x => x));
         }
     }
 }
