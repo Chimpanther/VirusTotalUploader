@@ -53,6 +53,7 @@ namespace uploader
             this.Text = LocalizationHelper.Base.SettingsForm_Title;
             directCheckbox.Text = LocalizationHelper.Base.SettingsForm_DirectUpload;
 
+            //LocalizationHelper.Export();
         }
 
         private void darkButton1_Click(object sender, EventArgs e)

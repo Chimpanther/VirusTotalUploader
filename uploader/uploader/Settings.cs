@@ -14,9 +14,6 @@ namespace uploader
         public string Language = "";
         public bool DirectUpload = false;
 
-        private static Settings _cachedSettings = null;
-        private static readonly object _lock = new object();
-
         public static string GetSettingsFilename()
         {
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vtu_settings.json");
@@ -24,7 +21,7 @@ namespace uploader
 
         public static void SaveSettings(Settings settings)
         {
-            if (settings.Language != null && settings.Language.Contains("Default"))
+            if (settings.Language.Contains("Default"))
             {
                 settings.Language = "";
             }
@@ -32,51 +29,23 @@ namespace uploader
             var serialized = JsonConvert.SerializeObject(settings);
             var file = GetSettingsFilename();
 
-            lock (_lock)
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
+            if (File.Exists(file))
+                File.Delete(file);
 
-                File.WriteAllText(file, serialized);
-
-                _cachedSettings = settings;
-            }
+            File.WriteAllText(file, serialized);
 
             LocalizationHelper.Update();
         }
 
         public static Settings LoadSettings()
         {
-            if (_cachedSettings != null)
-                return _cachedSettings;
+            var file = GetSettingsFilename();
 
-            lock (_lock)
-            {
-                if (_cachedSettings != null)
-                    return _cachedSettings;
+            if (!File.Exists(file))
+                return new Settings();
 
-                var file = GetSettingsFilename();
-
-                if (!File.Exists(file))
-                {
-                    _cachedSettings = new Settings();
-                    return _cachedSettings;
-                }
-
-                var context = File.ReadAllText(file);
-                var loadedSettings = JsonConvert.DeserializeObject<Settings>(context);
-
-                if (loadedSettings == null)
-                {
-                    _cachedSettings = new Settings();
-                }
-                else
-                {
-                    _cachedSettings = loadedSettings;
-                }
-
-                return _cachedSettings;
-            }
+            var context = File.ReadAllText(file);
+            return JsonConvert.DeserializeObject<Settings>(context);
         }
     }
 }
