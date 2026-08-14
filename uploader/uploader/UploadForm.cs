@@ -26,6 +26,7 @@ namespace uploader
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
+        private string _cachedMd5;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -78,12 +79,6 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            if (InvokeRequired)
-            {
-                this.Invoke(new Action(() => DisplayError(error)));
-                return;
-            }
-
             using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
@@ -94,15 +89,19 @@ namespace uploader
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                DisplayError(LocalizationHelper.Base.UploadForm_NoApiKey);
-                Finish(true);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                DisplayError(LocalizationHelper.Base.UploadForm_InvalidLength);
-                Finish(true);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 return;
             }
 
@@ -118,11 +117,10 @@ namespace uploader
                 _filesToUpload = new List<string> { _path };
             }
 
-            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
-            Parallel.ForEach(_filesToUpload, options, file =>
+            foreach (var file in _filesToUpload)
             {
                 UploadFile(file);
-            });
+            }
 
             Finish(true);
         }
@@ -134,21 +132,16 @@ namespace uploader
                 return;
             }
 
-            try
+            if (uri.Scheme == Uri.UriSchemeHttp)
             {
-                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-                {
-                    Process.Start(url);
-                }
+                Process.Start(url);
+                return;
             }
-            catch (Exception ex)
+
+            if (uri.Scheme == Uri.UriSchemeHttps)
             {
-                // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
-                // Silently ignoring is safer than crashing the background thread.
-                Debug.WriteLine($"Failed to open URL: {ex.Message}");
-            catch (Win32Exception)
-            {
-                // No default application associated with the protocol
+                Process.Start(url);
+                return;
             }
         }
 
@@ -165,6 +158,9 @@ namespace uploader
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
+
+            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
+            reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = _client.Execute(reportRequest);
             var reportContent = reportResponse.Content;
@@ -226,7 +222,8 @@ namespace uploader
             }
             else
             {
-                mdTextbox.Text = Utils.GetMD5(_path);
+                _cachedMd5 = Utils.GetMD5(_path);
+                mdTextbox.Text = _cachedMd5;
                 shaTextbox.Text = Utils.GetSHA1(_path);
                 sha2Textbox.Text = Utils.GetSHA256(_path);
             }
