@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,20 +19,18 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\uploader\Utils.cs" Link="Utils.cs" />
+    <Compile Include="..\uploader\Settings.cs" />
+    <Compile Include="..\uploader\LocalizationBase.cs" />
+    <Compile Include="..\uploader\LocalizationHelper.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\uploader\Settings.cs" Link="Settings.cs" />
-    <Compile Include="..\uploader\LocalizationHelper.cs" Link="LocalizationHelper.cs" />
-    <Compile Include="..\uploader\LocalizationBase.cs" Link="LocalizationBase.cs" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
-  </ItemGroup>
 </Project>

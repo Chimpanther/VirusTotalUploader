@@ -33,7 +33,6 @@ namespace uploader
             {
                 settings.Language = "";
             }
-            
             // Do not save the plaintext key
             settings.ObsoletePlaintextApiKey = "";
 
