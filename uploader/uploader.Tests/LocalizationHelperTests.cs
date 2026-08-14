@@ -1,14 +1,13 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using Newtonsoft.Json;
 using uploader;
+using Xunit;
 
 namespace uploader.Tests
 {
-    [TestClass]
     public class LocalizationHelperTests
     {
-        [TestMethod]
+        [Fact]
         public void Export_CreatesValidJsonFile()
         {
             // Arrange
@@ -24,12 +23,12 @@ namespace uploader.Tests
                 LocalizationHelper.Export();
 
                 // Assert
-                Assert.IsTrue(File.Exists(exportFileName), "The export.json file should be created.");
+                Assert.True(File.Exists(exportFileName), "The export.json file should be created.");
 
                 string jsonContent = File.ReadAllText(exportFileName);
                 var deserialized = JsonConvert.DeserializeObject<LocalizationBase>(jsonContent);
 
-                Assert.IsNotNull(deserialized, "The JSON content should be deserializable to LocalizationBase.");
+                Assert.NotNull(deserialized);
             }
             finally
             {
