@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -132,16 +132,18 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
-                Process.Start(url);
-                return;
-            }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
-            {
-                Process.Start(url);
-                return;
+                try
+                {
+                    Process.Start(url);
+                }
+                catch (Exception ex)
+                {
+                    // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
+                    // Silently ignoring is safer than crashing the background thread.
+                    Debug.WriteLine($"Failed to open URL: {ex.Message}");
+                }
             }
         }
 
