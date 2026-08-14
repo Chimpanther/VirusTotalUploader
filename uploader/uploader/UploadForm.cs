@@ -26,6 +26,7 @@ namespace uploader
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
+        private string _cachedMd5;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -78,21 +79,29 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
+            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
         }
 
         private async Task UploadAsync(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 return;
             }
 
@@ -126,6 +135,26 @@ namespace uploader
             Finish(true);
         }
 
+        private void OpenUrlSafe(string url)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
+            {
+                return;
+            }
+
+            if (uri.Scheme == Uri.UriSchemeHttp)
+            {
+                Process.Start(url);
+                return;
+            }
+
+            if (uri.Scheme == Uri.UriSchemeHttps)
+            {
+                Process.Start(url);
+                return;
+            }
+        }
+
         private async Task UploadFileAsync(string fullPath, CancellationToken token)
         {
             if (!File.Exists(fullPath))
@@ -140,7 +169,10 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetMD5(fullPath));
+            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
+
+            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
+            reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
@@ -152,7 +184,7 @@ namespace uploader
             try
             {
                 var reportLink = reportJson.permalink.ToString();
-                Process.Start(reportLink);
+                OpenUrlSafe(reportLink);
             }
             catch (RuntimeBinderException)
             {
@@ -175,8 +207,7 @@ namespace uploader
                     string scanId = scanJson.scan_id.ToString();
 
                     var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-
-                    Process.Start(scanLink);
+                    OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)
                 {
@@ -213,7 +244,8 @@ namespace uploader
             }
             else
             {
-                mdTextbox.Text = Utils.GetMD5(_path);
+                _cachedMd5 = Utils.GetMD5(_path);
+                mdTextbox.Text = _cachedMd5;
                 shaTextbox.Text = Utils.GetSHA1(_path);
                 sha2Textbox.Text = Utils.GetSHA256(_path);
             }
