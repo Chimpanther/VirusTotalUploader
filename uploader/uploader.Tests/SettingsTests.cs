@@ -1,22 +1,19 @@
 using System;
 using System.IO;
-using System.Reflection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using uploader;
 using Newtonsoft.Json;
+using Xunit;
 
 namespace uploader.Tests
 {
-    [TestClass]
-    public class SettingsTests
+    public class SettingsTests : IDisposable
     {
-        private string? originalAppData;
-        private string? originalXdgConfigHome;
-        private string testAppDataPath = "";
-        private string testSettingsFile = "";
+        private readonly string? originalAppData;
+        private readonly string? originalXdgConfigHome;
+        private readonly string testAppDataPath;
+        private readonly string testSettingsFile;
 
-        [TestInitialize]
-        public void Setup()
+        public SettingsTests()
         {
             testAppDataPath = Path.Combine(Path.GetTempPath(), "uploader_test_appdata_" + Guid.NewGuid().ToString());
             Directory.CreateDirectory(testAppDataPath);
@@ -29,15 +26,9 @@ namespace uploader.Tests
             Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", testAppDataPath);
 
             testSettingsFile = Path.Combine(testAppDataPath, "vtu_settings.json");
-
-            // Note: Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-            // On Linux uses XDG_CONFIG_HOME, on Windows uses APPDATA or USERPROFILE\AppData\Roaming.
-            // Since on Windows APPDATA might not change GetFolderPath if it's cached,
-            // we may need to use reflection if we want to change it. But setting XDG_CONFIG_HOME usually works for .NET Core on Linux.
         }
 
-        [TestCleanup]
-        public void Cleanup()
+        public void Dispose()
         {
             // Restore original environment
             Environment.SetEnvironmentVariable("APPDATA", originalAppData);
@@ -49,7 +40,7 @@ namespace uploader.Tests
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void LoadSettings_WhenFileDoesNotExist_ReturnsDefaultSettings()
         {
             var file = Settings.GetSettingsFilename();
@@ -58,13 +49,13 @@ namespace uploader.Tests
 
             var settings = Settings.LoadSettings();
 
-            Assert.IsNotNull(settings);
-            Assert.AreEqual("", settings.ApiKey);
-            Assert.AreEqual("", settings.Language);
-            Assert.IsFalse(settings.DirectUpload);
+            Assert.NotNull(settings);
+            Assert.Equal("", settings.ApiKey);
+            Assert.Equal("", settings.Language);
+            Assert.False(settings.DirectUpload);
         }
 
-        [TestMethod]
+        [Fact]
         public void LoadSettings_WhenFileExists_LoadsSettingsCorrectly()
         {
             var testSettings = new Settings
@@ -80,10 +71,54 @@ namespace uploader.Tests
 
             var loadedSettings = Settings.LoadSettings();
 
-            Assert.IsNotNull(loadedSettings);
-            Assert.AreEqual("test_api_key_12345", loadedSettings.ApiKey);
-            Assert.AreEqual("English", loadedSettings.Language);
-            Assert.IsTrue(loadedSettings.DirectUpload);
+            Assert.NotNull(loadedSettings);
+            Assert.Equal("test_api_key_12345", loadedSettings.ApiKey);
+            Assert.Equal("English", loadedSettings.Language);
+            Assert.True(loadedSettings.DirectUpload);
+        }
+
+        [Fact]
+        public void LoadSettings_MissingFile_ReturnsDefaultSettings()
+        {
+            // Arrange
+            var settingsFile = Settings.GetSettingsFilename();
+            var backupFile = settingsFile + ".bak";
+            bool hadExistingSettings = File.Exists(settingsFile);
+
+            try
+            {
+                if (hadExistingSettings)
+                {
+                    File.Move(settingsFile, backupFile);
+                }
+
+                // Double check that it's gone
+                if (File.Exists(settingsFile))
+                {
+                    File.Delete(settingsFile);
+                }
+
+                // Act
+                var settings = Settings.LoadSettings();
+
+                // Assert
+                Assert.NotNull(settings);
+                Assert.Equal("", settings.ApiKey);
+                Assert.Equal("", settings.Language);
+                Assert.False(settings.DirectUpload);
+            }
+            finally
+            {
+                // Restore
+                if (hadExistingSettings)
+                {
+                    if (File.Exists(settingsFile))
+                    {
+                        File.Delete(settingsFile);
+                    }
+                    File.Move(backupFile, settingsFile);
+                }
+            }
         }
     }
 }
