@@ -110,14 +110,8 @@ namespace uploader.Tests
             // Check if LocalizationHelper.Base was updated
             Assert.NotNull(LocalizationHelper.Base);
             Assert.Equal("Test Drag File", LocalizationHelper.Base.MainForm_DragFile);
-using Xunit;
-using System.IO;
-using uploader;
+        }
 
-namespace uploader.Tests
-{
-    public class SettingsTests
-    {
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefaultSettings()
         {
@@ -163,3 +157,4 @@ namespace uploader.Tests
         }
     }
 }
+
