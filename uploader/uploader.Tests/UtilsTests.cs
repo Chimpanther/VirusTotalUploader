@@ -1,37 +1,29 @@
-using Xunit;
 using System;
 using System.IO;
 using uploader;
+using Xunit;
 
 namespace uploader.Tests
 {
-    [TestFixture]
     public class UtilsTests
     {
-        private string testFilePath;
-
-                public void Setup()
-        {
-            testFilePath = Path.GetTempFileName();
-            File.WriteAllText(testFilePath, "Hello, World!");
-        }
-
-                public void Teardown()
-        {
-            if (File.Exists(testFilePath))
-            {
-                File.Delete(testFilePath);
-            }
-        }
-
         [Fact]
         public void GetSHA256_ReturnsExpectedHash()
         {
-            // Expected SHA256 for "Hello, World!" is dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f
-            string expectedHash = "DFFD6021BB2BD5B0AF676290809EC3A53191DD81C7F70A4B28688A362182986F";
-            string actualHash = Utils.GetSHA256(testFilePath);
+            string tempFile = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(tempFile, "Hello, World!");
+                // Expected SHA256 for "Hello, World!" is dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f
+                string expectedHash = "DFFD6021BB2BD5B0AF676290809EC3A53191DD81C7F70A4B28688A362182986F";
+                string actualHash = Utils.GetSHA256(tempFile);
 
-            Assert.Equal(expectedHash, actualHash);
+                Assert.Equal(expectedHash, actualHash);
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
         }
 
         [Fact]
@@ -57,30 +49,37 @@ namespace uploader.Tests
                 File.Delete(emptyFilePath);
             }
         }
-    }
+
         [Fact]
-                public void GetMD5_ValidFile_ReturnsCorrectHash()
-                {
-                    // Arrange
-                    string tempFile = Path.GetTempFileName();
-                    try
-                    {
-                        File.WriteAllText(tempFile, "hello world");
+        public void GetMD5_ValidFile_ReturnsCorrectHash()
+        {
+            // Arrange
+            string tempFile = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(tempFile, "hello world");
 
-                        // Act
-                        string hash = Utils.GetMD5(tempFile);
+                // Act
+                string hash = Utils.GetMD5(tempFile);
 
-                        // Assert
-                        // MD5 of "hello world" is 5EB63BBBE01EEED093CB22BB8F5ACDC3
-                        Assert.Equal("5EB63BBBE01EEED093CB22BB8F5ACDC3", hash);
-                    }
+                // Assert
+                // MD5 of "hello world" is 5EB63BBBE01EEED093CB22BB8F5ACDC3
+                Assert.Equal("5EB63BBBE01EEED093CB22BB8F5ACDC3", hash);
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
+        }
+
         [Fact]
-                public void GetMD5_NonExistentFile_ThrowsFileNotFoundException()
-                {
-                    // Arrange
-                    string fakePath = "this_file_does_not_exist.txt";
+        public void GetMD5_NonExistentFile_ThrowsFileNotFoundException()
+        {
+            // Arrange
+            string fakePath = "this_file_does_not_exist.txt";
 
-                    // Act & Assert
-                    Assert.Throws<FileNotFoundException>(() => Utils.GetMD5(fakePath));
-                }
+            // Act & Assert
+            Assert.Throws<FileNotFoundException>(() => Utils.GetMD5(fakePath));
+        }
     }
+}
