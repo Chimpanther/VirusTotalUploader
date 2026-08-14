@@ -1,16 +1,14 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using uploader;
+using Xunit;
 
 namespace uploader.Tests
 {
-    [TestClass]
     public class LocalizationHelperTests
     {
         private const string LocalFolder = "local";
 
-        [TestInitialize]
-        public void Setup()
+        public LocalizationHelperTests()
         {
             if (Directory.Exists(LocalFolder))
             {
@@ -18,28 +16,19 @@ namespace uploader.Tests
             }
         }
 
-        [TestCleanup]
-        public void Cleanup()
-        {
-            if (Directory.Exists(LocalFolder))
-            {
-                Directory.Delete(LocalFolder, true);
-            }
-        }
-
-        [TestMethod]
+        [Fact]
         public void GetLanguages_WhenLocalFolderDoesNotExist_ReturnsArrayWithEmptyString()
         {
             // Act
             var result = LocalizationHelper.GetLanguages();
 
             // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual(1, result.Length);
-            Assert.AreEqual("", result[0]);
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Length);
+            Assert.Equal("", result[0]);
         }
 
-        [TestMethod]
+        [Fact]
         public void GetLanguages_WhenLocalFolderExistsButEmpty_ReturnsEmptyArray()
         {
             // Arrange
@@ -49,11 +38,11 @@ namespace uploader.Tests
             var result = LocalizationHelper.GetLanguages();
 
             // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual(0, result.Length);
+            Assert.NotNull(result);
+            Assert.Equal(0, result.Length);
         }
 
-        [TestMethod]
+        [Fact]
         public void GetLanguages_WhenLocalFolderExistsWithFiles_ReturnsFilePaths()
         {
             // Arrange
@@ -65,10 +54,10 @@ namespace uploader.Tests
             var result = LocalizationHelper.GetLanguages();
 
             // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual(2, result.Length);
-            CollectionAssert.Contains(result, Path.Combine(LocalFolder, "en.json"));
-            CollectionAssert.Contains(result, Path.Combine(LocalFolder, "fr.json"));
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Length);
+            Assert.Contains(Path.Combine(LocalFolder, "en.json"), result);
+            Assert.Contains(Path.Combine(LocalFolder, "fr.json"), result);
         }
     }
 }
