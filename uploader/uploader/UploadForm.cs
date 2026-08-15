@@ -165,21 +165,21 @@ namespace uploader
 
         private async Task UploadFileAsync(string fullPath, CancellationToken token)
         {
-            if (!File.Exists(fullPath))
+            var fileInfo = new FileInfo(fullPath);
+            if (!fileInfo.Exists)
             {
-                DisplayError($"File {fullPath} does not exist.");
+                DisplayError($"File {fileInfo.FullName} does not exist.");
                 return;
             }
 
             token.ThrowIfCancellationRequested();
 
-            var fileName = Path.GetFileName(fullPath);
-            ChangeStatus($"Checking {fileName}...");
+            ChangeStatus($"Checking {fileInfo.Name}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
+            reportRequest.AddParameter("resource", Utils.GetSHA256(fileInfo.FullName));
 
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
+            string fileMd5 = (!_isFolder && fileInfo.FullName == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fileInfo.FullName);
             reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
@@ -203,16 +203,16 @@ namespace uploader
             catch (RuntimeBinderException)
             {
                 // Json does not contain permalink which means it's a new file (or the request failed)
-                await ScanFileAsync(fullPath, fileName, token);
+                await ScanFileAsync(fileInfo, token);
             }
         }
 
-        private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
+        private async Task ScanFileAsync(FileInfo fileInfo, CancellationToken token)
         {
-            ChangeStatus($"Uploading {fileName}...");
+            ChangeStatus($"Uploading {fileInfo.Name}...");
             var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
             scanRequest.AddParameter("apikey", _settings.ApiKey);
-            scanRequest.AddFile("file", fullPath);
+            scanRequest.AddFile("file", fileInfo.FullName);
 
             var scanResponse = await _client.ExecuteAsync(scanRequest, token);
             var scanContent = scanResponse.Content;
@@ -240,7 +240,7 @@ namespace uploader
             }
             catch (Exception ex)
             {
-                DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+                DisplayError($"Failed to get link for {fileInfo.Name}. Error: {ex.Message}");
             }
         }
 
