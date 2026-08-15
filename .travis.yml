@@ -5,9 +5,9 @@ notifications:
   email: false
 
 install:
-  - choco install -y nuget.commandline vswhere
+  - choco install -y nuget.commandline
   - nuget sources add -Name nuget.org -Source https://api.nuget.org/v3/index.json || true
   - nuget restore uploader/uploader.sln -Source https://api.nuget.org/v3/index.json
 
 script:
-  - MSBUILD=$(vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild/**/Bin/MSBuild.exe | head -n 1) && "$MSBUILD" uploader/uploader.sln /p:Configuration=Release /p:Platform=x64 /m && "$MSBUILD" uploader/uploader.sln /p:Configuration=Debug /p:Platform=x64 /m
+  - cmd.exe //c "call \"%VSAPPIDDIR%..\..\VC\Auxiliary\Build\vcvars64.bat\" 2>nul || call \"C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\VC\Auxiliary\Build\vcvars64.bat\" 2>nul || true && msbuild uploader\uploader.sln /p:Configuration=Release /p:Platform=x64 /m && msbuild uploader\uploader.sln /p:Configuration=Debug /p:Platform=x64 /m"
