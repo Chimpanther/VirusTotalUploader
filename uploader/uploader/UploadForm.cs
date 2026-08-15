@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -146,7 +146,12 @@ namespace uploader
             {
                 try
                 {
-                    Process.Start(url);
+                    var info = new ProcessStartInfo
+                    {
+                        FileName = url,
+                        UseShellExecute = true
+                    };
+                    Process.Start(info);
                 }
                 catch (Exception ex)
                 {

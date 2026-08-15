@@ -65,11 +65,20 @@ namespace uploader
                 return;
             }
 
-            var safePath = file.Replace("\"", "\\\"");
-            var args = $"/e, /select, \"{safePath}\"";
+            var info = new ProcessStartInfo
+            {
+                FileName = Path.GetDirectoryName(file),
+                UseShellExecute = true
+            };
 
-            var info = new ProcessStartInfo {FileName = "explorer", Arguments = args};
-            Process.Start(info);
+            try
+            {
+                Process.Start(info);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to open directory: {ex.Message}");
+            }
         }
 
         private void saveButton_Click(object sender, EventArgs e)
@@ -96,7 +105,19 @@ namespace uploader
 
         private void getApiButton_Click(object sender, EventArgs e)
         {
-            Process.Start("https://developers.virustotal.com/reference");
+            try
+            {
+                var info = new ProcessStartInfo
+                {
+                    FileName = "https://developers.virustotal.com/reference",
+                    UseShellExecute = true
+                };
+                Process.Start(info);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to open URL: {ex.Message}");
+            }
         }
     }
 }
