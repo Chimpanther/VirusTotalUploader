@@ -1,6 +1,9 @@
 os: windows
 language: shell
 
+env:
+  MSYS_NO_PATHCONV: 1
+
 notifications:
   email: false
 
