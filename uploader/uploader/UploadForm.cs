@@ -26,7 +26,6 @@ namespace uploader
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
-        private string _cachedMd5;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -79,6 +78,12 @@ namespace uploader
 
         private void DisplayError(string error)
         {
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
             using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
@@ -89,19 +94,13 @@ namespace uploader
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                {
-                    messageBox.ShowDialog();
-                }
+                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                {
-                    messageBox.ShowDialog();
-                }
+                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -117,10 +116,11 @@ namespace uploader
                 _filesToUpload = new List<string> { _path };
             }
 
-            foreach (var file in _filesToUpload)
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+            Parallel.ForEach(_filesToUpload, options, file =>
             {
                 UploadFile(file);
-            }
+            });
 
             Finish(true);
         }
@@ -132,16 +132,16 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            try
             {
-                Process.Start(url);
-                return;
+                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                {
+                    Process.Start(url);
+                }
             }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
+            catch (Win32Exception)
             {
-                Process.Start(url);
-                return;
+                // No default application associated with the protocol
             }
         }
 
@@ -158,9 +158,6 @@ namespace uploader
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
-
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
-            reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = _client.Execute(reportRequest);
             var reportContent = reportResponse.Content;
@@ -222,8 +219,7 @@ namespace uploader
             }
             else
             {
-                _cachedMd5 = Utils.GetMD5(_path);
-                mdTextbox.Text = _cachedMd5;
+                mdTextbox.Text = Utils.GetMD5(_path);
                 shaTextbox.Text = Utils.GetSHA1(_path);
                 sha2Textbox.Text = Utils.GetSHA256(_path);
             }

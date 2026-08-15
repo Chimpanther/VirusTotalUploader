@@ -37,7 +37,7 @@ jobs:
 
     # Setup NuGet for restoring packages (legacy packages.config format)
     - name: Setup NuGet
-      uses: NuGet/setup-nuget@v2
+      uses: NuGet/setup-nuget@v3
 
     # Restore NuGet packages
     - name: Restore NuGet packages
