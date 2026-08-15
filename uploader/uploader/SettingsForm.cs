@@ -76,11 +76,14 @@ namespace uploader
         {
             apiTextbox.Text = apiTextbox.Text.Trim();
 
+            var existingSettings = Settings.LoadSettings();
+
             var settings = new Settings
             {
                 ApiKey = apiTextbox.Text,
                 Language = languageCombo.Text,
-                DirectUpload = directCheckbox.Checked
+                DirectUpload = directCheckbox.Checked,
+                ApiUrl = existingSettings.ApiUrl
             };
 
             Settings.SaveSettings(settings);

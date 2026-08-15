@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -106,7 +106,8 @@ namespace uploader
             }
 
             ChangeStatus(LocalizationHelper.Base.Message_Init);
-            _client = new RestClient("https://www.virustotal.com");
+            var apiUrl = !string.IsNullOrEmpty(_settings.ApiUrl) ? _settings.ApiUrl : "https://www.virustotal.com";
+            _client = new RestClient(apiUrl);
 
             if (_isFolder)
             {
@@ -208,7 +209,8 @@ namespace uploader
                     string sha256 = scanJson.sha256.ToString();
                     string scanId = scanJson.scan_id.ToString();
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                    var apiUrl = !string.IsNullOrEmpty(_settings.ApiUrl) ? _settings.ApiUrl : "https://www.virustotal.com";
+                    var scanLink = $"{apiUrl}/gui/file/{sha256}/detection/{scanId}";
                     OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)

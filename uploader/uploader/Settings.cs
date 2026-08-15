@@ -13,6 +13,7 @@ namespace uploader
         public string ApiKey = "";
         public string Language = "";
         public bool DirectUpload = false;
+        public string ApiUrl = "https://www.virustotal.com";
 
         public static string GetSettingsFilename()
         {
