@@ -10,6 +10,4 @@ install:
   - nuget restore uploader/uploader.sln -Source https://api.nuget.org/v3/index.json
 
 script:
-  - export MSBUILD_PATH=$(vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild/**/Bin/MSBuild.exe | head -n 1)
-  - '"$MSBUILD_PATH" uploader/uploader.sln /p:Configuration=Release /p:Platform=x64 /m'
-  - '"$MSBUILD_PATH" uploader/uploader.sln /p:Configuration=Debug /p:Platform=x64 /m'
+  - MSBUILD=$(vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild/**/Bin/MSBuild.exe | head -n 1) && "$MSBUILD" uploader/uploader.sln /p:Configuration=Release /p:Platform=x64 /m && "$MSBUILD" uploader/uploader.sln /p:Configuration=Debug /p:Platform=x64 /m
