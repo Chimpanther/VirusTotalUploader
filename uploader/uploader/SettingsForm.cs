@@ -96,7 +96,11 @@ namespace uploader
 
         private void getApiButton_Click(object sender, EventArgs e)
         {
-            Process.Start("https://developers.virustotal.com/reference");
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://developers.virustotal.com/reference",
+                UseShellExecute = true
+            });
         }
     }
 }

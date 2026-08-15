@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -146,7 +146,11 @@ namespace uploader
             {
                 try
                 {
-                    Process.Start(url);
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = url,
+                        UseShellExecute = true
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -208,7 +212,7 @@ namespace uploader
                     string sha256 = scanJson.sha256.ToString();
                     string scanId = scanJson.scan_id.ToString();
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                    var scanLink = $"https://www.virustotal.com/gui/file/{Uri.EscapeDataString(sha256)}/detection/{Uri.EscapeDataString(scanId)}";
                     OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)
