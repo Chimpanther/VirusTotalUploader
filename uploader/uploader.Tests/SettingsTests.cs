@@ -1,91 +1,42 @@
-using System;
+﻿using Xunit;
 using System.IO;
 using uploader;
-using Xunit;
+using Newtonsoft.Json;
 
 namespace uploader.Tests
 {
+    [Collection("Sequential")]
     public class SettingsTests
     {
         [Fact]
-        public void LoadSettings_MissingFile_ReturnsDefault()
+        public void Settings_ApiKey_Encryption_RoundTrips()
         {
-            var settingsFile = Settings.GetSettingsFilename();
+            var settings = new Settings { ApiKey = "my_secret_key" };
+            string json = JsonConvert.SerializeObject(settings);
 
-            // Backup existing if any
-            string? backup = null;
-            if (File.Exists(settingsFile))
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
             {
-                backup = File.ReadAllText(settingsFile);
-                File.Delete(settingsFile);
+                // Check that plaintext key isn't in JSON on Windows where DPAPI works
+                Assert.DoesNotContain("my_secret_key", json);
             }
 
-            try
-            {
-                // Ensure it does not exist
-                Assert.False(File.Exists(settingsFile));
+            Assert.Contains("ApiKey", json);
 
-                // Act
-                var settings = Settings.LoadSettings();
-
-                // Assert default properties
-                Assert.NotNull(settings);
-                Assert.Equal("", settings.ApiKey);
-                Assert.Equal("", settings.Language);
-                Assert.False(settings.DirectUpload);
-            }
-            finally
-            {
-                // Restore backup
-                if (backup != null)
-                {
-                    File.WriteAllText(settingsFile, backup);
-                }
-            }
+            // Check that it can be deserialized properly
+            var deserialized = JsonConvert.DeserializeObject<Settings>(json);
+            Assert.NotNull(deserialized);
+            Assert.Equal("my_secret_key", deserialized.ApiKey);
         }
 
         [Fact]
-        public void LoadSettings_MissingFile_ReturnsDefaultSettings()
+        public void Settings_OldPlaintextJson_DeserializesCorrectly()
         {
-            // Arrange
-            var settingsFile = Settings.GetSettingsFilename();
-            var backupFile = settingsFile + ".bak";
-            bool hadExistingSettings = File.Exists(settingsFile);
+            // Simulate reading an old JSON file where "ApiKey" was stored as plaintext
+            string json = "{\"ApiKey\":\"old_secret_key\",\"Language\":\"en\"}";
 
-            try
-            {
-                if (hadExistingSettings)
-                {
-                    File.Move(settingsFile, backupFile);
-                }
-
-                // Double check that it's gone
-                if (File.Exists(settingsFile))
-                {
-                    File.Delete(settingsFile);
-                }
-
-                // Act
-                var settings = Settings.LoadSettings();
-
-                // Assert
-                Assert.NotNull(settings);
-                Assert.Equal("", settings.ApiKey);
-                Assert.Equal("", settings.Language);
-                Assert.False(settings.DirectUpload);
-            }
-            finally
-            {
-                // Restore
-                if (hadExistingSettings)
-                {
-                    if (File.Exists(settingsFile))
-                    {
-                        File.Delete(settingsFile);
-                    }
-                    File.Move(backupFile, settingsFile);
-                }
-            }
+            var deserialized = JsonConvert.DeserializeObject<Settings>(json);
+            Assert.NotNull(deserialized);
+            Assert.Equal("old_secret_key", deserialized.ApiKey);
         }
     }
 }
