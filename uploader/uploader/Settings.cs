@@ -19,7 +19,7 @@ namespace uploader
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vtu_settings.json");
         }
 
-        private static Settings? _cachedSettings = null;
+        private static Settings _cachedSettings = null;
         private static readonly object _cacheLock = new object();
 
         public static void SaveSettings(Settings settings)

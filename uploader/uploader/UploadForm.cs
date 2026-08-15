@@ -203,39 +203,44 @@ namespace uploader
             catch (RuntimeBinderException)
             {
                 // Json does not contain permalink which means it's a new file (or the request failed)
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
+                await ScanFileAsync(fullPath, fileName, token);
+            }
+        }
 
-                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
-                var scanContent = scanResponse.Content;
+        private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
+        {
+            ChangeStatus($"Uploading {fileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _settings.ApiKey);
+            scanRequest.AddFile("file", fullPath);
 
-                token.ThrowIfCancellationRequested();
+            var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+            var scanContent = scanResponse.Content;
 
-                if (!scanResponse.IsSuccessful)
-                {
-                    DisplayError($"Scan request failed with status {(int)scanResponse.StatusCode}");
-                    return;
-                }
+            token.ThrowIfCancellationRequested();
 
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+            if (!scanResponse.IsSuccessful)
+            {
+                DisplayError($"Scan request failed with status {(int)scanResponse.StatusCode}");
+                return;
+            }
 
-                try
-                {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
+            dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
-                    string safeSha256 = Uri.EscapeDataString(sha256);
-                    string safeScanId = Uri.EscapeDataString(scanId);
+            try
+            {
+                string sha256 = scanJson.sha256.ToString();
+                string scanId = scanJson.scan_id.ToString();
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{safeSha256}/detection/{safeScanId}";
-                    OpenUrlSafe(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
-                }
+                string safeSha256 = Uri.EscapeDataString(sha256);
+                string safeScanId = Uri.EscapeDataString(scanId);
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{safeSha256}/detection/{safeScanId}";
+                OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
             }
         }
 

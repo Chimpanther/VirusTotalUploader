@@ -7,15 +7,19 @@ namespace uploader.Tests
 {
     public class SettingsTests : IDisposable
     {
-        private readonly string _tempAppData;
-        private readonly string _originalAppData;
+        private string? _backup;
+        private readonly string _settingsFile;
 
         public SettingsTests()
         {
-            _originalAppData = Environment.GetEnvironmentVariable("APPDATA") ?? string.Empty;
-            _tempAppData = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            Directory.CreateDirectory(_tempAppData);
-            Environment.SetEnvironmentVariable("APPDATA", _tempAppData);
+            _settingsFile = Settings.GetSettingsFilename();
+
+            // Backup existing if any
+            if (File.Exists(_settingsFile))
+            {
+                _backup = File.ReadAllText(_settingsFile);
+                File.Delete(_settingsFile);
+            }
         }
 
         public void Dispose()
@@ -27,20 +31,22 @@ namespace uploader.Tests
                 field.SetValue(null, null);
             }
 
-            Environment.SetEnvironmentVariable("APPDATA", string.IsNullOrEmpty(_originalAppData) ? null : _originalAppData);
-            if (Directory.Exists(_tempAppData))
+            // Restore backup
+            if (_backup != null)
             {
-                Directory.Delete(_tempAppData, true);
+                File.WriteAllText(_settingsFile, _backup);
+            }
+            else if (File.Exists(_settingsFile))
+            {
+                File.Delete(_settingsFile);
             }
         }
 
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefault()
         {
-            var settingsFile = Settings.GetSettingsFilename();
-
             // Ensure it does not exist
-            Assert.False(File.Exists(settingsFile));
+            Assert.False(File.Exists(_settingsFile));
 
             // Act
             var settings = Settings.LoadSettings();
@@ -55,13 +61,10 @@ namespace uploader.Tests
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefaultSettings()
         {
-            // Arrange
-            var settingsFile = Settings.GetSettingsFilename();
-
             // Double check that it's gone
-            if (File.Exists(settingsFile))
+            if (File.Exists(_settingsFile))
             {
-                File.Delete(settingsFile);
+                File.Delete(_settingsFile);
             }
 
             // Act
