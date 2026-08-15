@@ -12,21 +12,16 @@ namespace uploader.Tests
 
         public LocalizationHelperTests()
         {
-            // Clean up before tests
-            if (Directory.Exists(LocalFolder))
-            {
-                Directory.Delete(LocalFolder, true);
-            }
-            if (File.Exists("export.json"))
-            {
-                File.Delete("export.json");
-            }
-            LocalizationHelper.Base = null;
+            CleanupTestState();
         }
 
         public void Dispose()
         {
-            // Clean up after tests
+            CleanupTestState();
+        }
+
+        private void CleanupTestState()
+        {
             if (Directory.Exists(LocalFolder))
             {
                 Directory.Delete(LocalFolder, true);
