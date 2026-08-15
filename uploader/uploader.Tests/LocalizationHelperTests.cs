@@ -61,100 +61,60 @@ namespace uploader.Tests
             }
         }
 
-        [Fact]
-        public void Update_WithLanguageSettings_LoadsLanguage()
+        private void RunWithMockSettings(Settings tempSettings, Action testAction)
         {
-            // Arrange
             var settingsFile = Settings.GetSettingsFilename();
             var backupFile = settingsFile + ".bak";
             bool hadExistingSettings = File.Exists(settingsFile);
 
-            Directory.CreateDirectory(LocalFolder);
-            string langFile = Path.Combine(LocalFolder, "test_lang.json");
-            File.WriteAllText(langFile, "{\"MainForm_More\": \"Language More\"}");
+            if (hadExistingSettings)
+            {
+                File.Move(settingsFile, backupFile);
+            }
 
             try
             {
-                if (hadExistingSettings)
-                {
-                    File.Move(settingsFile, backupFile);
-                }
-
-                var settings = new Settings { Language = langFile };
-                Settings.SaveSettings(settings);
-
-                // Act
-                LocalizationHelper.Update();
-
-                // Assert
-                Assert.NotNull(LocalizationHelper.Base);
-                Assert.Equal("Language More", LocalizationHelper.Base.MainForm_More);
+                Settings.SaveSettings(tempSettings);
+                testAction();
             }
             finally
             {
-                // Restore
+                if (File.Exists(settingsFile))
+                {
+                    File.Delete(settingsFile);
+                }
+
                 if (hadExistingSettings)
                 {
-                    if (File.Exists(settingsFile))
-                    {
-                        File.Delete(settingsFile);
-                    }
                     File.Move(backupFile, settingsFile);
-                }
-                else
-                {
-                    if (File.Exists(settingsFile))
-                    {
-                        File.Delete(settingsFile);
-                    }
                 }
             }
         }
 
         [Fact]
+        public void Update_WithLanguageSettings_LoadsLanguage()
+        {
+            Directory.CreateDirectory(LocalFolder);
+            string langFile = Path.Combine(LocalFolder, "test_lang.json");
+            File.WriteAllText(langFile, "{\"MainForm_More\": \"Language More\"}");
+
+            RunWithMockSettings(new Settings { Language = langFile }, () =>
+            {
+                LocalizationHelper.Update();
+                Assert.NotNull(LocalizationHelper.Base);
+                Assert.Equal("Language More", LocalizationHelper.Base.MainForm_More);
+            });
+        }
+
+        [Fact]
         public void Update_WithoutLanguageSettings_SetsDefaultBase()
         {
-            // Arrange
-            var settingsFile = Settings.GetSettingsFilename();
-            var backupFile = settingsFile + ".bak";
-            bool hadExistingSettings = File.Exists(settingsFile);
-
-            try
+            RunWithMockSettings(new Settings { Language = "" }, () =>
             {
-                if (hadExistingSettings)
-                {
-                    File.Move(settingsFile, backupFile);
-                }
-
-                var settings = new Settings { Language = "" };
-                Settings.SaveSettings(settings);
-
-                // Act
                 LocalizationHelper.Update();
-
-                // Assert
                 Assert.NotNull(LocalizationHelper.Base);
                 Assert.Equal("More", LocalizationHelper.Base.MainForm_More);
-            }
-            finally
-            {
-                // Restore
-                if (hadExistingSettings)
-                {
-                    if (File.Exists(settingsFile))
-                    {
-                        File.Delete(settingsFile);
-                    }
-                    File.Move(backupFile, settingsFile);
-                }
-                else
-                {
-                    if (File.Exists(settingsFile))
-                    {
-                        File.Delete(settingsFile);
-                    }
-                }
-            }
+            });
         }
 
         [Fact]
