@@ -10,5 +10,5 @@ install:
   - nuget restore uploader/uploader.sln -Source https://api.nuget.org/v3/index.json
 
 script:
-  - dotnet build uploader/uploader.sln -c Release /p:Platform=x64
-  - dotnet build uploader/uploader.sln -c Debug /p:Platform=x64
+  - dotnet build uploader/uploader.sln -c Release -p:Platform=x64
+  - dotnet build uploader/uploader.sln -c Debug -p:Platform=x64
