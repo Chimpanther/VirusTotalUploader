@@ -179,13 +179,7 @@ namespace uploader
 
         private async Task<bool> CheckFileReportAsync(string fullPath, CancellationToken token)
         {
-            var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
-            reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
-
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
-            reportRequest.AddParameter("resource", fileMd5);
-
+            var reportRequest = CreateReportRequest(fullPath);
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
 
             if (reportResponse.StatusCode != System.Net.HttpStatusCode.OK)
@@ -193,30 +187,48 @@ namespace uploader
                 return true; // Treat as new file to trigger upload if check fails or returns 204
             }
 
-            var reportContent = reportResponse.Content;
-
             token.ThrowIfCancellationRequested();
 
+            return !TryOpenReportLink(reportResponse.Content);
+        }
+
+        private RestRequest CreateReportRequest(string fullPath)
+        {
+            var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
+            reportRequest.AddParameter("apikey", _settings.ApiKey);
+            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
+            reportRequest.AddParameter("resource", GetFileMd5(fullPath));
+            return reportRequest;
+        }
+
+        private string GetFileMd5(string fullPath)
+        {
+            return (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5))
+                ? _cachedMd5
+                : Utils.GetMD5(fullPath);
+        }
+
+        private bool TryOpenReportLink(string reportContent)
+        {
             try
             {
                 dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
                 if (reportJson != null && reportJson.permalink != null)
                 {
-                    var reportLink = reportJson.permalink.ToString();
-                    OpenUrlSafe(reportLink);
-                    return false; // File exists, no need to upload
+                    OpenUrlSafe(reportJson.permalink.ToString());
+                    return true;
                 }
             }
             catch (RuntimeBinderException)
             {
-                // Fallthrough to true
+                // Fallthrough
             }
             catch (JsonException)
             {
                 // Failed to deserialize, fallthrough
             }
 
-            return true; // Json does not contain permalink which means it's a new file (or the request failed)
+            return false;
         }
 
         private async Task UploadNewFileAsync(string fullPath, string fileName, CancellationToken token)
