@@ -173,7 +173,7 @@ namespace uploader
             bool isNewFile = await CheckFileReportAsync(fullPath, token);
             if (isNewFile)
             {
-                await UploadNewFileAsync(fullPath, fileName, token);
+                await UploadNewFileAsync(fullPath, token);
             }
         }
 
@@ -231,8 +231,9 @@ namespace uploader
             return false;
         }
 
-        private async Task UploadNewFileAsync(string fullPath, string fileName, CancellationToken token)
+        private async Task UploadNewFileAsync(string fullPath, CancellationToken token)
         {
+            var fileName = Path.GetFileName(fullPath);
             ChangeStatus($"Uploading {fileName}...");
             var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
             scanRequest.AddParameter("apikey", _settings.ApiKey);
