@@ -6,7 +6,8 @@ notifications:
 
 install:
   - choco install -y nuget.commandline
-  - nuget restore uploader/uploader.sln
+  - nuget sources add -Name nuget.org -Source https://api.nuget.org/v3/index.json || true
+  - nuget restore uploader/uploader.sln -Source https://api.nuget.org/v3/index.json
 
 script:
   - msbuild uploader/uploader.sln /p:Configuration=Release /p:Platform=x64 /m
