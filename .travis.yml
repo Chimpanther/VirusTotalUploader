@@ -13,5 +13,5 @@ install:
   - nuget restore uploader/uploader.sln -Source https://api.nuget.org/v3/index.json
 
 script:
-  - '"/c/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin/MSBuild.exe" uploader/uploader.sln /p:Configuration=Release /p:Platform=x64 /m'
-  - '"/c/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin/MSBuild.exe" uploader/uploader.sln /p:Configuration=Debug /p:Platform=x64 /m'
+  - '"/c/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin/MSBuild.exe" uploader/uploader/uploader.csproj /p:Configuration=Release /p:Platform=x64 /m'
+  - '"/c/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin/MSBuild.exe" uploader/uploader/uploader.csproj /p:Configuration=Debug /p:Platform=x64 /m'
