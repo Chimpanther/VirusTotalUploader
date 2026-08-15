@@ -5,10 +5,11 @@ notifications:
   email: false
 
 install:
-  - choco install -y nuget.commandline
+  - choco install -y dotnet-8.0-sdk nuget.commandline
   - nuget sources add -Name nuget.org -Source https://api.nuget.org/v3/index.json || true
   - nuget restore uploader/uploader.sln -Source https://api.nuget.org/v3/index.json
 
 script:
   - dotnet build uploader/uploader.sln -c Release -p:Platform=x64
   - dotnet build uploader/uploader.sln -c Debug -p:Platform=x64
+  - dotnet test uploader/uploader.Tests/uploader.Tests.csproj -c Debug
