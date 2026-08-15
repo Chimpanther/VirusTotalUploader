@@ -1,0 +1,13 @@
+os: windows
+language: csharp
+solution: uploader/uploader.sln
+
+notifications:
+  email: false
+
+install:
+  - nuget restore uploader/uploader.sln
+
+script:
+  - msbuild uploader/uploader.sln /p:Configuration=Release /p:Platform=x64 /m
+  - msbuild uploader/uploader.sln /p:Configuration=Debug /p:Platform=x64 /m
