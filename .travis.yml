@@ -1,11 +1,11 @@
 os: windows
-language: csharp
-solution: uploader/uploader.sln
+language: shell
 
 notifications:
   email: false
 
 install:
+  - choco install -y nuget.commandline
   - nuget restore uploader/uploader.sln
 
 script:
