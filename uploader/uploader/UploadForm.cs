@@ -169,6 +169,16 @@ namespace uploader
 
             var fileName = Path.GetFileName(fullPath);
             ChangeStatus($"Checking {fileName}...");
+
+            bool isNewFile = await CheckFileReportAsync(fullPath, token);
+            if (isNewFile)
+            {
+                await UploadNewFileAsync(fullPath, fileName, token);
+            }
+        }
+
+        private async Task<bool> CheckFileReportAsync(string fullPath, CancellationToken token)
+        {
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
@@ -177,44 +187,69 @@ namespace uploader
             reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
+
+            if (reportResponse.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                return true; // Treat as new file to trigger upload if check fails or returns 204
+            }
+
             var reportContent = reportResponse.Content;
 
             token.ThrowIfCancellationRequested();
 
-            dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
-
             try
             {
-                var reportLink = reportJson.permalink.ToString();
-                OpenUrlSafe(reportLink);
+                dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
+                if (reportJson != null && reportJson.permalink != null)
+                {
+                    var reportLink = reportJson.permalink.ToString();
+                    OpenUrlSafe(reportLink);
+                    return false; // File exists, no need to upload
+                }
             }
             catch (RuntimeBinderException)
             {
-                // Json does not contain permalink which means it's a new file (or the request failed)
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
+                // Fallthrough to true
+            }
+            catch (JsonException)
+            {
+                // Failed to deserialize, fallthrough
+            }
 
-                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
-                var scanContent = scanResponse.Content;
+            return true; // Json does not contain permalink which means it's a new file (or the request failed)
+        }
 
-                token.ThrowIfCancellationRequested();
+        private async Task UploadNewFileAsync(string fullPath, string fileName, CancellationToken token)
+        {
+            ChangeStatus($"Uploading {fileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _settings.ApiKey);
+            scanRequest.AddFile("file", fullPath);
 
+            var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+
+            if (scanResponse.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                DisplayError($"Failed to upload {fileName}. Status Code: {scanResponse.StatusCode}");
+                return;
+            }
+
+            var scanContent = scanResponse.Content;
+
+            token.ThrowIfCancellationRequested();
+
+            try
+            {
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+                string sha256 = scanJson.sha256.ToString();
+                string scanId = scanJson.scan_id.ToString();
 
-                try
-                {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
-
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    OpenUrlSafe(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
-                }
+                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
             }
         }
 
