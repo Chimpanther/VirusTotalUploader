@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -79,6 +79,12 @@ namespace uploader
 
         private void DisplayError(string error)
         {
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
             using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
@@ -146,7 +152,7 @@ namespace uploader
             {
                 try
                 {
-                    Process.Start(url);
+                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                 }
                 catch (Exception ex)
                 {
@@ -181,6 +187,12 @@ namespace uploader
 
             token.ThrowIfCancellationRequested();
 
+            if (!reportResponse.IsSuccessful)
+            {
+                DisplayError($"Report request failed with status {(int)reportResponse.StatusCode}");
+                return;
+            }
+
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
             try
@@ -201,6 +213,12 @@ namespace uploader
 
                 token.ThrowIfCancellationRequested();
 
+                if (!scanResponse.IsSuccessful)
+                {
+                    DisplayError($"Scan request failed with status {(int)scanResponse.StatusCode}");
+                    return;
+                }
+
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
                 try
@@ -208,7 +226,10 @@ namespace uploader
                     string sha256 = scanJson.sha256.ToString();
                     string scanId = scanJson.scan_id.ToString();
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                    string safeSha256 = Uri.EscapeDataString(sha256);
+                    string safeScanId = Uri.EscapeDataString(scanId);
+
+                    var scanLink = $"https://www.virustotal.com/gui/file/{safeSha256}/detection/{safeScanId}";
                     OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)

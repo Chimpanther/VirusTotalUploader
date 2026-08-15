@@ -1,47 +1,55 @@
-using System;
+﻿using System;
 using System.IO;
 using uploader;
 using Xunit;
 
 namespace uploader.Tests
 {
-    public class SettingsTests
+    public class SettingsTests : IDisposable
     {
+        private readonly string _tempAppData;
+        private readonly string _originalAppData;
+
+        public SettingsTests()
+        {
+            _originalAppData = Environment.GetEnvironmentVariable("APPDATA") ?? string.Empty;
+            _tempAppData = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            Directory.CreateDirectory(_tempAppData);
+            Environment.SetEnvironmentVariable("APPDATA", _tempAppData);
+        }
+
+        public void Dispose()
+        {
+            // Reset the static cache to ensure test isolation
+            var field = typeof(Settings).GetField("_cachedSettings", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            if (field != null)
+            {
+                field.SetValue(null, null);
+            }
+
+            Environment.SetEnvironmentVariable("APPDATA", string.IsNullOrEmpty(_originalAppData) ? null : _originalAppData);
+            if (Directory.Exists(_tempAppData))
+            {
+                Directory.Delete(_tempAppData, true);
+            }
+        }
+
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefault()
         {
             var settingsFile = Settings.GetSettingsFilename();
 
-            // Backup existing if any
-            string? backup = null;
-            if (File.Exists(settingsFile))
-            {
-                backup = File.ReadAllText(settingsFile);
-                File.Delete(settingsFile);
-            }
+            // Ensure it does not exist
+            Assert.False(File.Exists(settingsFile));
 
-            try
-            {
-                // Ensure it does not exist
-                Assert.False(File.Exists(settingsFile));
+            // Act
+            var settings = Settings.LoadSettings();
 
-                // Act
-                var settings = Settings.LoadSettings();
-
-                // Assert default properties
-                Assert.NotNull(settings);
-                Assert.Equal("", settings.ApiKey);
-                Assert.Equal("", settings.Language);
-                Assert.False(settings.DirectUpload);
-            }
-            finally
-            {
-                // Restore backup
-                if (backup != null)
-                {
-                    File.WriteAllText(settingsFile, backup);
-                }
-            }
+            // Assert default properties
+            Assert.NotNull(settings);
+            Assert.Equal("", settings.ApiKey);
+            Assert.Equal("", settings.Language);
+            Assert.False(settings.DirectUpload);
         }
 
         [Fact]
@@ -49,43 +57,21 @@ namespace uploader.Tests
         {
             // Arrange
             var settingsFile = Settings.GetSettingsFilename();
-            var backupFile = settingsFile + ".bak";
-            bool hadExistingSettings = File.Exists(settingsFile);
 
-            try
+            // Double check that it's gone
+            if (File.Exists(settingsFile))
             {
-                if (hadExistingSettings)
-                {
-                    File.Move(settingsFile, backupFile);
-                }
-
-                // Double check that it's gone
-                if (File.Exists(settingsFile))
-                {
-                    File.Delete(settingsFile);
-                }
-
-                // Act
-                var settings = Settings.LoadSettings();
-
-                // Assert
-                Assert.NotNull(settings);
-                Assert.Equal("", settings.ApiKey);
-                Assert.Equal("", settings.Language);
-                Assert.False(settings.DirectUpload);
+                File.Delete(settingsFile);
             }
-            finally
-            {
-                // Restore
-                if (hadExistingSettings)
-                {
-                    if (File.Exists(settingsFile))
-                    {
-                        File.Delete(settingsFile);
-                    }
-                    File.Move(backupFile, settingsFile);
-                }
-            }
+
+            // Act
+            var settings = Settings.LoadSettings();
+
+            // Assert
+            Assert.NotNull(settings);
+            Assert.Equal("", settings.ApiKey);
+            Assert.Equal("", settings.Language);
+            Assert.False(settings.DirectUpload);
         }
     }
 }
