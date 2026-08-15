@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -52,7 +52,7 @@ namespace uploader
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
             foreach (var file in files)
             {
-                var uploadForm = new UploadForm(this, settings, true, file);
+                var uploadForm = new UploadForm(new UploadForm.UploadFormContext { MainForm = this, Settings = settings, Reopen = true, Path = file });
                 uploadForm.Show();
                 this.Hide();
             }
@@ -66,7 +66,7 @@ namespace uploader
             if (args.Length == 2)
             {
                 var file = args[1]; // Second argument because .NET puts program filename to the first
-                var uploadForm = new UploadForm(this, settings, false, file);
+                var uploadForm = new UploadForm(new UploadForm.UploadFormContext { MainForm = this, Settings = settings, Reopen = false, Path = file });
                 uploadForm.Show();
                 this.Hide();
             }

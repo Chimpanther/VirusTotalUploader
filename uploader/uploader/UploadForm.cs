@@ -28,16 +28,26 @@ namespace uploader
         private List<string> _filesToUpload;
         private string _cachedMd5;
 
-        public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
+        public class UploadFormContext
         {
-            _path = path;
-            _mainForm = mainForm;
-            _settings = settings;
-            _reopen = reopen;
+            public MainForm MainForm { get; set; }
+            public Settings Settings { get; set; }
+            public bool Reopen { get; set; }
+            public string Path { get; set; }
+        }
+
+        public UploadForm(UploadFormContext context)
+        {
+            _path = context.Path;
+            _mainForm = context.MainForm;
+            _settings = context.Settings;
+            _reopen = context.Reopen;
             _isFolder = Directory.Exists(_path);
 
             InitializeComponent();
         }
+
+
 
         private void ChangeStatus(string text)
         {
