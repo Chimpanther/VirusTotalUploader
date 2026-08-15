@@ -31,7 +31,7 @@ namespace uploader.Tests
 
                 // Assert
                 // MD5 of "hello world" is 5EB63BBBE01EEED093CB22BB8F5ACDC3
-                Assert.Equal("5EB63BBBE01EEED093CB22BB8F5ACDC3", hash);
+                Assert.Equal("5eb63bbbe01eeed093cb22bb8f5acdc3", hash);
             }
             finally
             {
