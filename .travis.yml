@@ -10,4 +10,5 @@ install:
   - nuget restore uploader/uploader.sln -Source https://api.nuget.org/v3/index.json
 
 script:
-  - cmd.exe //c "call \"%VSAPPIDDIR%..\..\VC\Auxiliary\Build\vcvars64.bat\" 2>nul || call \"C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\VC\Auxiliary\Build\vcvars64.bat\" 2>nul || true && msbuild uploader\uploader.sln /p:Configuration=Release /p:Platform=x64 /m && msbuild uploader\uploader.sln /p:Configuration=Debug /p:Platform=x64 /m"
+  - '"/c/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin/MSBuild.exe" uploader/uploader.sln /p:Configuration=Release /p:Platform=x64 /m'
+  - '"/c/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin/MSBuild.exe" uploader/uploader.sln /p:Configuration=Debug /p:Platform=x64 /m'
