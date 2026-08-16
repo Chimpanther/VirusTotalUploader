@@ -175,15 +175,23 @@ namespace uploader
             }
         }
 
-        private (string sha256, string md5) GetFileHashes(string fullPath)
+        private Utils.FileHashesResult GetFileHashes(string fullPath)
         {
-            if (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5))
+            bool isSingleFileTarget = !_isFolder;
+            bool isCurrentTarget = fullPath == _path;
+            bool hasCache = !string.IsNullOrEmpty(_cachedMd5);
+            bool shouldUseCache = isSingleFileTarget && isCurrentTarget && hasCache;
+
+            if (shouldUseCache)
             {
-                return (_cachedSha256, _cachedMd5);
+                return new Utils.FileHashesResult
+                {
+                    Sha256 = _cachedSha256,
+                    Md5 = _cachedMd5
+                };
             }
 
-            var hashes = Utils.GetHashes(fullPath);
-            return (hashes.sha256, hashes.md5);
+            return Utils.GetHashes(fullPath);
         }
 
         private async Task<bool> CheckFileReportAsync(string fullPath, string fileName, CancellationToken token)
@@ -192,10 +200,10 @@ namespace uploader
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
 
-            var (fileSha256, fileMd5) = GetFileHashes(fullPath);
+            var fileHashes = GetFileHashes(fullPath);
 
-            reportRequest.AddParameter("resource", fileSha256);
-            reportRequest.AddParameter("resource", fileMd5);
+            reportRequest.AddParameter("resource", fileHashes.Sha256);
+            reportRequest.AddParameter("resource", fileHashes.Md5);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             token.ThrowIfCancellationRequested();
@@ -300,11 +308,11 @@ namespace uploader
             else
             {
                 var hashes = Utils.GetHashes(_path);
-                _cachedMd5 = hashes.md5;
-                _cachedSha256 = hashes.sha256;
-                mdTextbox.Text = hashes.md5;
-                shaTextbox.Text = hashes.sha1;
-                sha2Textbox.Text = hashes.sha256;
+                _cachedMd5 = hashes.Md5;
+                _cachedSha256 = hashes.Sha256;
+                mdTextbox.Text = hashes.Md5;
+                shaTextbox.Text = hashes.Sha1;
+                sha2Textbox.Text = hashes.Sha256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;

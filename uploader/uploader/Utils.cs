@@ -37,7 +37,14 @@ namespace uploader
             }
         }
 
-        public static (string md5, string sha1, string sha256) GetHashes(string file)
+        public class FileHashesResult
+        {
+            public string Md5 { get; set; } = string.Empty;
+            public string Sha1 { get; set; } = string.Empty;
+            public string Sha256 { get; set; } = string.Empty;
+        }
+
+        public static FileHashesResult GetHashes(string file)
         {
             using (var md5 = MD5.Create())
             using (var sha1 = SHA1.Create())
@@ -56,11 +63,12 @@ namespace uploader
                 sha1.TransformFinalBlock(buffer, 0, 0);
                 sha256.TransformFinalBlock(buffer, 0, 0);
 
-                return (
-                    BitConverter.ToString(md5.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty),
-                    BitConverter.ToString(sha1.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty),
-                    BitConverter.ToString(sha256.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty)
-                );
+                return new FileHashesResult
+                {
+                    Md5 = BitConverter.ToString(md5.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty),
+                    Sha1 = BitConverter.ToString(sha1.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty),
+                    Sha256 = BitConverter.ToString(sha256.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty)
+                };
             }
         }
     }
