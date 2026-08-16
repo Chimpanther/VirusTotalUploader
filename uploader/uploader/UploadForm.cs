@@ -152,7 +152,7 @@ namespace uploader
             {
                 try
                 {
-                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                    Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
                 }
                 catch (Exception ex)
                 {
