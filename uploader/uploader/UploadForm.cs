@@ -175,6 +175,82 @@ namespace uploader
             }
         }
 
+        private (string sha256, string md5) GetFileHashes(string fullPath)
+        {
+            if (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5))
+            {
+                return (_cachedSha256, _cachedMd5);
+            }
+
+            var hashes = Utils.GetHashes(fullPath);
+            return (hashes.sha256, hashes.md5);
+        }
+
+        private async Task<bool> CheckFileReportAsync(string fullPath, string fileName, CancellationToken token)
+        {
+            ChangeStatus($"Checking {fileName}...");
+            var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
+            reportRequest.AddParameter("apikey", _settings.ApiKey);
+
+            var (fileSha256, fileMd5) = GetFileHashes(fullPath);
+
+            reportRequest.AddParameter("resource", fileSha256);
+            reportRequest.AddParameter("resource", fileMd5);
+
+            var reportResponse = await _client.ExecuteAsync(reportRequest, token);
+            token.ThrowIfCancellationRequested();
+
+            if (!reportResponse.IsSuccessful)
+            {
+                DisplayError($"Failed to check {fileName}. API returned: {reportResponse.StatusCode}");
+                return true; // Stop processing
+            }
+
+            dynamic reportJson = JsonConvert.DeserializeObject(reportResponse.Content);
+            try
+            {
+                var reportLink = reportJson.permalink.ToString();
+                OpenUrlSafe(reportLink);
+                return true; // Found report, open and stop processing
+            }
+            catch (RuntimeBinderException)
+            {
+                return false; // No permalink, proceed to scan
+            }
+        }
+
+        private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
+        {
+            ChangeStatus($"Uploading {fileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _settings.ApiKey);
+            scanRequest.AddFile("file", fullPath);
+
+            var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+            token.ThrowIfCancellationRequested();
+
+            if (!scanResponse.IsSuccessful)
+            {
+                DisplayError($"Failed to upload {fileName}. API returned: {scanResponse.StatusCode}");
+                return;
+            }
+
+            dynamic scanJson = JsonConvert.DeserializeObject(scanResponse.Content);
+
+            try
+            {
+                string sha256 = Uri.EscapeDataString(scanJson.sha256.ToString());
+                string scanId = Uri.EscapeDataString(scanJson.scan_id.ToString());
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+            }
+        }
+
         private async Task UploadFileAsync(string fullPath, CancellationToken token)
         {
             if (!File.Exists(fullPath))
@@ -184,82 +260,15 @@ namespace uploader
             }
 
             token.ThrowIfCancellationRequested();
-
             var fileName = Path.GetFileName(fullPath);
-            ChangeStatus($"Checking {fileName}...");
-            var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
-            reportRequest.AddParameter("apikey", _settings.ApiKey);
 
-            string fileSha256;
-            string fileMd5;
-            if (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5))
+            bool reportFound = await CheckFileReportAsync(fullPath, fileName, token);
+            if (reportFound)
             {
-                // Relying on hashes computed during UploadForm_Load
-                fileSha256 = _cachedSha256;
-                fileMd5 = _cachedMd5;
-            }
-            else
-            {
-                var hashes = Utils.GetHashes(fullPath);
-                fileSha256 = hashes.sha256;
-                fileMd5 = hashes.md5;
-            }
-
-            reportRequest.AddParameter("resource", fileSha256);
-            reportRequest.AddParameter("resource", fileMd5);
-
-            var reportResponse = await _client.ExecuteAsync(reportRequest, token);
-            var reportContent = reportResponse.Content;
-
-            token.ThrowIfCancellationRequested();
-
-            if (!reportResponse.IsSuccessful)
-            {
-                DisplayError($"Failed to check {fileName}. API returned: {reportResponse.StatusCode}");
                 return;
             }
 
-            dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
-
-            try
-            {
-                var reportLink = reportJson.permalink.ToString();
-                OpenUrlSafe(reportLink);
-            }
-            catch (RuntimeBinderException)
-            {
-                // Json does not contain permalink which means it's a new file (or the request failed)
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
-
-                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
-                var scanContent = scanResponse.Content;
-
-                token.ThrowIfCancellationRequested();
-
-                if (!scanResponse.IsSuccessful)
-                {
-                    DisplayError($"Failed to upload {fileName}. API returned: {scanResponse.StatusCode}");
-                    return;
-                }
-
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
-
-                try
-                {
-                    string sha256 = Uri.EscapeDataString(scanJson.sha256.ToString());
-                    string scanId = Uri.EscapeDataString(scanJson.scan_id.ToString());
-
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    OpenUrlSafe(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
-                }
-            }
+            await ScanFileAsync(fullPath, fileName, token);
         }
 
         private void StartUploadThread()
