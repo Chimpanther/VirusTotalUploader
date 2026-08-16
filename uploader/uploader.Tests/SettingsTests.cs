@@ -5,8 +5,19 @@ using Xunit;
 
 namespace uploader.Tests
 {
-    public class SettingsTests
+    [Collection("Sequential")]
+    public class SettingsTests : IDisposable
     {
+        public SettingsTests()
+        {
+            Settings.ClearCache();
+        }
+
+        public void Dispose()
+        {
+            Settings.ClearCache();
+        }
+
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefault()
         {
@@ -40,6 +51,10 @@ namespace uploader.Tests
                 if (backup != null)
                 {
                     File.WriteAllText(settingsFile, backup);
+                }
+                else if (File.Exists(settingsFile))
+                {
+                    File.Delete(settingsFile);
                 }
             }
         }
@@ -84,6 +99,10 @@ namespace uploader.Tests
                         File.Delete(settingsFile);
                     }
                     File.Move(backupFile, settingsFile);
+                }
+                else if (File.Exists(settingsFile))
+                {
+                    File.Delete(settingsFile);
                 }
             }
         }

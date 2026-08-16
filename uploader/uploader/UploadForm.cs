@@ -27,6 +27,7 @@ namespace uploader
         private bool _isFolder;
         private List<string> _filesToUpload;
         private string _cachedMd5;
+        private string _cachedSha256;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -79,6 +80,12 @@ namespace uploader
 
         private void DisplayError(string error)
         {
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
             using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
@@ -89,19 +96,25 @@ namespace uploader
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                this.Invoke(new Action(() =>
                 {
-                    messageBox.ShowDialog();
-                }
+                    using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                    {
+                        messageBox.ShowDialog();
+                    }
+                }));
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                this.Invoke(new Action(() =>
                 {
-                    messageBox.ShowDialog();
-                }
+                    using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                    {
+                        messageBox.ShowDialog();
+                    }
+                }));
                 return;
             }
 
@@ -146,7 +159,12 @@ namespace uploader
             {
                 try
                 {
-                    Process.Start(url);
+                    var info = new ProcessStartInfo
+                    {
+                        FileName = url,
+                        UseShellExecute = true
+                    };
+                    Process.Start(info);
                 }
                 catch (Exception ex)
                 {
@@ -171,15 +189,35 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
+            string fileSha256;
+            string fileMd5;
+            if (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5))
+            {
+                // Relying on hashes computed during UploadForm_Load
+                fileSha256 = _cachedSha256;
+                fileMd5 = _cachedMd5;
+            }
+            else
+            {
+                var hashes = Utils.GetHashes(fullPath);
+                fileSha256 = hashes.sha256;
+                fileMd5 = hashes.md5;
+            }
+
+            reportRequest.AddParameter("resource", fileSha256);
             reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
 
             token.ThrowIfCancellationRequested();
+
+            if (!reportResponse.IsSuccessful)
+            {
+                DisplayError($"Failed to check {fileName}. API returned: {reportResponse.StatusCode}");
+                return;
+            }
 
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
@@ -201,12 +239,18 @@ namespace uploader
 
                 token.ThrowIfCancellationRequested();
 
+                if (!scanResponse.IsSuccessful)
+                {
+                    DisplayError($"Failed to upload {fileName}. API returned: {scanResponse.StatusCode}");
+                    return;
+                }
+
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
                 try
                 {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
+                    string sha256 = Uri.EscapeDataString(scanJson.sha256.ToString());
+                    string scanId = Uri.EscapeDataString(scanJson.scan_id.ToString());
 
                     var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
                     OpenUrlSafe(scanLink);
@@ -246,10 +290,12 @@ namespace uploader
             }
             else
             {
-                _cachedMd5 = Utils.GetMD5(_path);
-                mdTextbox.Text = _cachedMd5;
-                shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                var hashes = Utils.GetHashes(_path);
+                _cachedMd5 = hashes.md5;
+                _cachedSha256 = hashes.sha256;
+                mdTextbox.Text = hashes.md5;
+                shaTextbox.Text = hashes.sha1;
+                sha2Textbox.Text = hashes.sha256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
