@@ -126,7 +126,7 @@ namespace uploader
             var tasks = new List<Task>();
             foreach (var file in _filesToUpload)
             {
-                tasks.Add(UploadFileAsync(file, token));
+                tasks.Add(UploadFileAsync(new FileInfo(file), token));
             }
 
             try
@@ -163,25 +163,25 @@ namespace uploader
             }
         }
 
-        private async Task<bool> CheckFileReportAsync(string fullPath, CancellationToken token)
+        private async Task<bool> CheckFileReportAsync(FileInfo fileInfo, CancellationToken token)
         {
-            ChangeStatus($"Checking {Path.GetFileName(fullPath)}...");
+            ChangeStatus($"Checking {fileInfo.Name}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
 
-            bool isMainFile = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5));
+            bool isMainFile = (!_isFolder && fileInfo.FullName == _path && !string.IsNullOrEmpty(_cachedMd5));
             string fileSha256;
             string fileMd5;
 
             if (isMainFile)
             {
-                var hashes = Utils.GetHashes(fullPath);
+                var hashes = Utils.GetHashes(fileInfo.FullName);
                 fileSha256 = hashes.SHA256;
                 fileMd5 = _cachedMd5;
             }
             else
             {
-                var hashes = Utils.GetHashes(fullPath);
+                var hashes = Utils.GetHashes(fileInfo.FullName);
                 fileSha256 = hashes.SHA256;
                 fileMd5 = hashes.MD5;
             }
@@ -212,13 +212,12 @@ namespace uploader
             return false;
         }
 
-        private async Task ScanFileAsync(string fullPath, CancellationToken token)
+        private async Task ScanFileAsync(FileInfo fileInfo, CancellationToken token)
         {
-            var fileName = Path.GetFileName(fullPath);
-            ChangeStatus($"Uploading {fileName}...");
+            ChangeStatus($"Uploading {fileInfo.Name}...");
             var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
             scanRequest.AddParameter("apikey", _settings.ApiKey);
-            scanRequest.AddFile("file", fullPath);
+            scanRequest.AddFile("file", fileInfo.FullName);
 
             var scanResponse = await _client.ExecuteAsync(scanRequest, token);
 
@@ -239,30 +238,30 @@ namespace uploader
                 }
                 catch (Exception ex)
                 {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+                    DisplayError($"Failed to get link for {fileInfo.Name}. Error: {ex.Message}");
                 }
             }
             else
             {
-                DisplayError($"Failed to upload {fileName}. Error code: {scanResponse.StatusCode}");
+                DisplayError($"Failed to upload {fileInfo.Name}. Error code: {scanResponse.StatusCode}");
             }
         }
 
-        private async Task UploadFileAsync(string fullPath, CancellationToken token)
+        private async Task UploadFileAsync(FileInfo fileInfo, CancellationToken token)
         {
-            if (!File.Exists(fullPath))
+            if (!fileInfo.Exists)
             {
-                DisplayError($"File {fullPath} does not exist.");
+                DisplayError($"File {fileInfo.FullName} does not exist.");
                 return;
             }
 
             token.ThrowIfCancellationRequested();
 
-            bool reportParsed = await CheckFileReportAsync(fullPath, token);
+            bool reportParsed = await CheckFileReportAsync(fileInfo, token);
 
             if (!reportParsed)
             {
-                await ScanFileAsync(fullPath, token);
+                await ScanFileAsync(fileInfo, token);
             }
         }
 
