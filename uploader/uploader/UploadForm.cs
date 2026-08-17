@@ -163,9 +163,9 @@ namespace uploader
             }
         }
 
-        private async Task<bool> CheckFileReportAsync(string fullPath, string fileName, CancellationToken token)
+        private async Task<bool> CheckFileReportAsync(string fullPath, CancellationToken token)
         {
-            ChangeStatus($"Checking {fileName}...");
+            ChangeStatus($"Checking {Path.GetFileName(fullPath)}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
 
@@ -212,8 +212,9 @@ namespace uploader
             return false;
         }
 
-        private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
+        private async Task ScanFileAsync(string fullPath, CancellationToken token)
         {
+            var fileName = Path.GetFileName(fullPath);
             ChangeStatus($"Uploading {fileName}...");
             var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
             scanRequest.AddParameter("apikey", _settings.ApiKey);
@@ -257,13 +258,11 @@ namespace uploader
 
             token.ThrowIfCancellationRequested();
 
-            var fileName = Path.GetFileName(fullPath);
-
-            bool reportParsed = await CheckFileReportAsync(fullPath, fileName, token);
+            bool reportParsed = await CheckFileReportAsync(fullPath, token);
 
             if (!reportParsed)
             {
-                await ScanFileAsync(fullPath, fileName, token);
+                await ScanFileAsync(fullPath, token);
             }
         }
 
