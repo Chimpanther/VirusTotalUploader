@@ -5,8 +5,18 @@ using Xunit;
 
 namespace uploader.Tests
 {
-    public class SettingsTests
+    public class SettingsTests : IDisposable
     {
+        public SettingsTests()
+        {
+            Settings.ClearCache();
+        }
+
+        public void Dispose()
+        {
+            Settings.ClearCache();
+        }
+
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefault()
         {
