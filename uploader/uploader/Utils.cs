@@ -37,9 +37,9 @@ namespace uploader
 
                 return new FileHashesResult
                 {
-                    MD5 = BitConverter.ToString(md5.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty),
-                    SHA1 = BitConverter.ToString(sha1.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty),
-                    SHA256 = BitConverter.ToString(sha256.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty)
+                    MD5 = BitConverter.ToString(md5.Hash != null ? md5.Hash : new byte[0]).Replace("-", string.Empty),
+                    SHA1 = BitConverter.ToString(sha1.Hash != null ? sha1.Hash : new byte[0]).Replace("-", string.Empty),
+                    SHA256 = BitConverter.ToString(sha256.Hash != null ? sha256.Hash : new byte[0]).Replace("-", string.Empty)
                 };
             }
         }
