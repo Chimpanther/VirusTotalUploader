@@ -50,12 +50,9 @@ namespace uploader
             var settings = Settings.LoadSettings();
 
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-            foreach (var file in files)
-            {
-                var uploadForm = new UploadForm(this, settings, true, file);
-                uploadForm.Show();
-                this.Hide();
-            }
+            var uploadForm = new UploadForm(this, settings, true, files);
+            uploadForm.Show();
+            this.Hide();
         }
 
         private void MainForm_Shown(object sender, EventArgs e)
@@ -66,7 +63,7 @@ namespace uploader
             if (args.Length == 2)
             {
                 var file = args[1]; // Second argument because .NET puts program filename to the first
-                var uploadForm = new UploadForm(this, settings, false, file);
+                var uploadForm = new UploadForm(this, settings, false, new string[] { file });
                 uploadForm.Show();
                 this.Hide();
             }
