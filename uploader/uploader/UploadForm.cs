@@ -144,9 +144,10 @@ namespace uploader
 
             if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
+                // It is recommended to further restrict allowed hosts using a whitelist of known-safe domains.
                 try
                 {
-                    Process.Start(url);
+                    Process.Start(uri.AbsoluteUri);
                 }
                 catch (Exception ex)
                 {
