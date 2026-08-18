@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -22,10 +22,11 @@ namespace uploader
         private readonly string _path;
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
-        private Thread _uploadThread;
+        private CancellationTokenSource _cancellationTokenSource;
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
+        private string _cachedMd5;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -78,21 +79,29 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
-            messageBox.ShowDialog();
+            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+            {
+                messageBox.ShowDialog();
+            }
         }
 
-        private void Upload()
+        private async Task UploadAsync(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
                 return;
             }
 
@@ -108,9 +117,19 @@ namespace uploader
                 _filesToUpload = new List<string> { _path };
             }
 
+            var tasks = new List<Task>();
             foreach (var file in _filesToUpload)
             {
-                UploadFile(file);
+                tasks.Add(UploadFileAsync(file, token));
+            }
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation was requested, do nothing special here.
             }
 
             Finish(true);
@@ -123,20 +142,22 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp)
+            if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
-                Process.Start(url);
-                return;
-            }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
-            {
-                Process.Start(url);
-                return;
+                try
+                {
+                    Process.Start(url);
+                }
+                catch (Exception ex)
+                {
+                    // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
+                    // Silently ignoring is safer than crashing the background thread.
+                    Debug.WriteLine($"Failed to open URL: {ex.Message}");
+                }
             }
         }
 
-        private void UploadFile(string fullPath)
+        private async Task UploadFileAsync(string fullPath, CancellationToken token)
         {
             if (!File.Exists(fullPath))
             {
@@ -144,14 +165,22 @@ namespace uploader
                 return;
             }
 
+            token.ThrowIfCancellationRequested();
+
             var fileName = Path.GetFileName(fullPath);
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
-            var reportResponse = _client.Execute(reportRequest);
+            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
+            reportRequest.AddParameter("resource", fileMd5);
+
+            var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
+
+            token.ThrowIfCancellationRequested();
+
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
             try
@@ -167,8 +196,11 @@ namespace uploader
                 scanRequest.AddParameter("apikey", _settings.ApiKey);
                 scanRequest.AddFile("file", fullPath);
 
-                var scanResponse = _client.Execute(scanRequest);
+                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
                 var scanContent = scanResponse.Content;
+
+                token.ThrowIfCancellationRequested();
+
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
                 try
@@ -188,16 +220,20 @@ namespace uploader
 
         private void StartUploadThread()
         {
-            if (_uploadThread != null && _uploadThread.IsAlive)
+            if (_cancellationTokenSource != null)
             {
-                _uploadThread.Abort();
+                _cancellationTokenSource.Cancel();
+                _cancellationTokenSource.Dispose();
+                _cancellationTokenSource = null;
                 uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
                 return;
             }
-            uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
 
-            _uploadThread = new Thread(Upload);
-            _uploadThread.Start();
+            uploadButton.Text = LocalizationHelper.Base.UploadForm_Cancel;
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            var token = _cancellationTokenSource.Token;
+            Task.Run(async () => await UploadAsync(token));
         }
 
         private void UploadForm_Load(object sender, EventArgs e)
@@ -211,6 +247,7 @@ namespace uploader
             else
             {
                 var hashes = Utils.GetHashes(_path);
+                _cachedMd5 = hashes.md5;
                 mdTextbox.Text = hashes.md5;
                 shaTextbox.Text = hashes.sha1;
                 sha2Textbox.Text = hashes.sha256;
