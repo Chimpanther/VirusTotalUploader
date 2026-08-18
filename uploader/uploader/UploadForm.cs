@@ -26,7 +26,6 @@ namespace uploader
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
-        private string _cachedMd5;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -79,29 +78,21 @@ namespace uploader
 
         private void DisplayError(string error)
         {
-            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-            {
-                messageBox.ShowDialog();
-            }
+            var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok);
+            messageBox.ShowDialog();
         }
 
         private void Upload()
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                {
-                    messageBox.ShowDialog();
-                }
+                MessageBox.Show(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                {
-                    messageBox.ShowDialog();
-                }
+                MessageBox.Show(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -126,25 +117,6 @@ namespace uploader
             Finish(true);
         }
 
-        private void OpenUrlSafe(string url)
-        {
-            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
-            {
-                return;
-            }
-
-            if (uri.Scheme == Uri.UriSchemeHttp)
-            {
-                Process.Start(url);
-                return;
-            }
-
-            if (uri.Scheme == Uri.UriSchemeHttps)
-            {
-                Process.Start(url);
-                return;
-            }
-        }
 
         private class VTReport
         {
@@ -202,9 +174,9 @@ namespace uploader
             {
                 var parsedToken = Newtonsoft.Json.Linq.JToken.Parse(content);
                 var reports = new List<VTReport>();
-                if (parsedToken is Newtonsoft.Json.Linq.JArray)
+                if (parsedToken is Newtonsoft.Json.Linq.JArray jArray)
                 {
-                    foreach (var r in parsedToken)
+                    foreach (var r in jArray)
                     {
                         reports.Add(r.ToObject<VTReport>());
                     }
@@ -312,8 +284,7 @@ namespace uploader
             }
             else
             {
-                _cachedMd5 = Utils.GetMD5(_path);
-                mdTextbox.Text = _cachedMd5;
+                mdTextbox.Text = Utils.GetMD5(_path);
                 shaTextbox.Text = Utils.GetSHA1(_path);
                 sha2Textbox.Text = Utils.GetSHA256(_path);
             }
