@@ -10,13 +10,13 @@ namespace uploader
 {
     internal class Utils
     {
-        public static string GetMD5(string file)
+        public static string GetSHA384(string file)
         {
-            using (var md5 = MD5.Create())
+            using (var sha384 = SHA384.Create())
             {
                 using (var stream = File.OpenRead(file))
                 {
-                    var hashBytes = md5.ComputeHash(stream);
+                    var hashBytes = sha384.ComputeHash(stream);
                     var sb = new StringBuilder();
                     foreach (var t in hashBytes)
                     {
@@ -29,21 +29,25 @@ namespace uploader
 
         public static string GetSHA256(string file)
         {
-            using (var stream = File.OpenRead(file))
+            using (var sha = SHA256.Create())
             {
-                var sha = new SHA256Managed();
-                var checksum = sha.ComputeHash(stream);
-                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                using (var stream = File.OpenRead(file))
+                {
+                    var checksum = sha.ComputeHash(stream);
+                    return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                }
             }
         }
 
-        public static string GetSHA1(string file)
+        public static string GetSHA512(string file)
         {
-            using (var stream = File.OpenRead(file))
+            using (var sha = SHA512.Create())
             {
-                var sha = new SHA1Managed();
-                var checksum = sha.ComputeHash(stream);
-                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                using (var stream = File.OpenRead(file))
+                {
+                    var checksum = sha.ComputeHash(stream);
+                    return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                }
             }
         }
     }

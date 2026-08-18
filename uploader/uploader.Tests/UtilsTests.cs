@@ -8,17 +8,17 @@ namespace uploader.Tests
     public class UtilsTests
     {
         [Fact]
-        public void GetMD5_NonExistentFile_ThrowsFileNotFoundException()
+        public void GetSHA384_NonExistentFile_ThrowsFileNotFoundException()
         {
             // Arrange
             string fakePath = "this_file_does_not_exist.txt";
 
             // Act & Assert
-            Assert.Throws<FileNotFoundException>(() => Utils.GetMD5(fakePath));
+            Assert.Throws<FileNotFoundException>(() => Utils.GetSHA384(fakePath));
         }
 
         [Fact]
-        public void GetMD5_ValidFile_ReturnsCorrectHash()
+        public void GetSHA384_ValidFile_ReturnsCorrectHash()
         {
             // Arrange
             string tempFile = Path.GetTempFileName();
@@ -27,11 +27,11 @@ namespace uploader.Tests
                 File.WriteAllText(tempFile, "hello world");
 
                 // Act
-                string hash = Utils.GetMD5(tempFile);
+                string hash = Utils.GetSHA384(tempFile);
 
                 // Assert
-                // MD5 of "hello world" is 5EB63BBBE01EEED093CB22BB8F5ACDC3
-                Assert.Equal("5EB63BBBE01EEED093CB22BB8F5ACDC3", hash);
+                // SHA384 of "hello world" is FDBD8E75A67F29F701A4E040385E2E23986303EA10239211AF907FCBB83578B3E417CB71CE646EFD0819DD8C088DE1BD
+                Assert.Equal("FDBD8E75A67F29F701A4E040385E2E23986303EA10239211AF907FCBB83578B3E417CB71CE646EFD0819DD8C088DE1BD", hash);
             }
             finally
             {

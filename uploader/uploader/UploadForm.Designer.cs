@@ -86,7 +86,7 @@
             this.darkLabel1.Name = "darkLabel1";
             this.darkLabel1.Size = new System.Drawing.Size(33, 13);
             this.darkLabel1.TabIndex = 0;
-            this.darkLabel1.Text = "MD5:";
+            this.darkLabel1.Text = "SHA384:";
             // 
             // mdTextbox
             // 
@@ -116,7 +116,7 @@
             this.darkLabel2.Name = "darkLabel2";
             this.darkLabel2.Size = new System.Drawing.Size(38, 13);
             this.darkLabel2.TabIndex = 2;
-            this.darkLabel2.Text = "SHA1:";
+            this.darkLabel2.Text = "SHA512:";
             // 
             // sha2Textbox
             // 
