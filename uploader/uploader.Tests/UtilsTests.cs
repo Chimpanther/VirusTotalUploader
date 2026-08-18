@@ -2,6 +2,7 @@ namespace uploader.Tests;
 
 using System;
 using System.IO;
+using uploader;
 
 [TestClass]
 public sealed class UtilsTests
