@@ -132,7 +132,7 @@ namespace uploader
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", Utils.GetMD5(fullPath));
 
-            var reportResponse = await _client.ExecuteAsync(reportRequest, cancellationToken);
+            var reportResponse = await _client.ExecuteTaskAsync(reportRequest, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             var reportContent = reportResponse.Content;
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
@@ -150,7 +150,7 @@ namespace uploader
                 scanRequest.AddParameter("apikey", _settings.ApiKey);
                 scanRequest.AddFile("file", fullPath);
 
-                var scanResponse = await _client.ExecuteAsync(scanRequest, cancellationToken);
+                var scanResponse = await _client.ExecuteTaskAsync(scanRequest, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 var scanContent = scanResponse.Content;
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
@@ -176,6 +176,11 @@ namespace uploader
             if (_uploadTask != null && !_uploadTask.IsCompleted)
             {
                 _cancellationTokenSource?.Cancel();
+                try
+                {
+                    await _uploadTask;
+                }
+                catch {}
                 uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
                 return;
             }
