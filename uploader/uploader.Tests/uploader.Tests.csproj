@@ -19,6 +19,7 @@
     <Compile Include="..\uploader\Settings.cs" Link="Settings.cs" />
     <Compile Include="..\uploader\LocalizationHelper.cs" Link="LocalizationHelper.cs" />
     <Compile Include="..\uploader\LocalizationBase.cs" Link="LocalizationBase.cs" />
+    <Compile Include="..\uploader\Utils.cs" Link="Utils.cs" />
   </ItemGroup>
 
 </Project>
