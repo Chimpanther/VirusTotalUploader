@@ -1,25 +1,23 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Linq;
 using uploader;
-using Xunit;
 
 namespace uploader.Tests
 {
-    public class LocalizationHelperTests : System.IDisposable
+    [TestClass]
+    public class LocalizationHelperTests
     {
         private const string LocalFolder = "local";
 
-        public LocalizationHelperTests()
+        [TestInitialize]
+        public void Setup()
         {
             Cleanup();
         }
 
-        public void Dispose()
-        {
-            Cleanup();
-        }
-
-        private void Cleanup()
+        [TestCleanup]
+        public void Cleanup()
         {
             if (Directory.Exists(LocalFolder))
             {
@@ -27,19 +25,19 @@ namespace uploader.Tests
             }
         }
 
-        [Fact]
+        [TestMethod]
         public void GetLanguages_DirectoryDoesNotExist_ReturnsArrayWithEmptyString()
         {
             // Act
             var result = LocalizationHelper.GetLanguages();
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(1, result.Length);
-            Assert.Equal("", result[0]);
+            Assert.IsNotNull(result);
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual("", result[0]);
         }
 
-        [Fact]
+        [TestMethod]
         public void GetLanguages_DirectoryExists_ReturnsFiles()
         {
             // Arrange
@@ -53,11 +51,11 @@ namespace uploader.Tests
             var result = LocalizationHelper.GetLanguages();
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(2, result.Length);
+            Assert.IsNotNull(result);
+            Assert.AreEqual(2, result.Length);
             // Result paths will have platform specific path separators, but Directory.GetFiles
             // returns them exactly as constructed if they are in the working directory.
-            Assert.Equal(new[] { file1, file2 }.OrderBy(x => x), result.OrderBy(x => x));
+            CollectionAssert.AreEquivalent(new[] { file1, file2 }, result);
         }
     }
 }
