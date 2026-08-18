@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Utfør en verifiserbar, begrenset konsolidering av unikt innhold fra PR-kartleggingen mot origin/master.",
+  "goal": "Utfør en verifiserbar, begrenset konsolidering av unikt innhold fra PR-kartleggingen mot origin/master.",
+  "successEvidence": [],
+  "stopCondition": "Stop when success evidence is satisfied or a blocker/risk requires pause.",
+  "nonGoals": [],
+  "scope": "PR 37-94; kun repo-eid kode og tester; ingen PR-lukking, merge, push eller eksterne opplastinger.",
+  "changeKinds": [
+    "refactor"
+  ],
+  "riskHints": []
+}

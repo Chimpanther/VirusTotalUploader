@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-18-vtu-netto-konsolidering",
+  "taskIntentRef": "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/task-intent-draft.json",
+  "baselineRefs": [
+    "origin/master@cd4172b"
+  ],
+  "scopeStatus": "safe test and URL slices only; remaining plan units intentionally out of scope",
+  "compatStatus": "legacy app compatibility remains unverified because native MSBuild is unavailable",
+  "retirementStatus": "no fallback retirement needed; risky migrations not started",
+  "newRiskSignals": [
+    "explicit approval and Windows build evidence required for settings storage, API URL, hash removal, and UploadForm concurrency changes"
+  ],
+  "decision": "pause-for-user"
+}

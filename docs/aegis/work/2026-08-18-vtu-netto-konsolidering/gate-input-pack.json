@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "origin/master@cd4172b"
+  ],
+  "impactStatement": "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/impact-statement-draft.json",
+  "compatPlan": "Compatibility boundary not yet refined.",
+  "retirementPlan": "no fallback retirement needed; risky migrations not started",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/evidence-bundle-draft-crypto-tests.json",
+    "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/evidence-bundle-draft-final-test-diff.json",
+    "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/evidence-bundle-draft-legacy-build-blocked.json",
+    "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/evidence-bundle-draft-localization-tests.json"
+  ]
+}

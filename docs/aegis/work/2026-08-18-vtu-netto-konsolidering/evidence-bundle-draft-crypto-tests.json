@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "crypto-tests",
+  "type": "test",
+  "source": "dotnet test uploader/uploader.Tests/uploader.Tests.csproj --no-restore --verbosity minimal",
+  "summary": "17 tests passed after adding SHA-256/null/empty coverage and aligning MD5 expected case; existing nullable warnings remain.",
+  "verifier": "local dotnet test"
+}

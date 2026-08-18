@@ -146,7 +146,11 @@ namespace uploader
             {
                 try
                 {
-                    Process.Start(url);
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = uri.AbsoluteUri,
+                        UseShellExecute = true
+                    });
                 }
                 catch (Exception ex)
                 {

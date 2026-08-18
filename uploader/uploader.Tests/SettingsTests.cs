@@ -1,91 +1,123 @@
 using System;
 using System.IO;
+using Newtonsoft.Json;
 using uploader;
 using Xunit;
 
 namespace uploader.Tests
 {
-    public class SettingsTests
+    public class SettingsTests : IDisposable
     {
-        [Fact]
-        public void LoadSettings_MissingFile_ReturnsDefault()
+        private readonly string _settingsFile;
+        private readonly string _settingsBackup;
+        private readonly bool _settingsExisted;
+        private readonly LocalizationBase _localizationBackup;
+        private readonly string _originalCurrentDirectory;
+        private readonly string _testDirectory;
+
+        public SettingsTests()
         {
-            var settingsFile = Settings.GetSettingsFilename();
+            _settingsFile = Settings.GetSettingsFilename();
+            _settingsExisted = File.Exists(_settingsFile);
+            _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
+            _localizationBackup = LocalizationHelper.Base;
+            _originalCurrentDirectory = Environment.CurrentDirectory;
+            _testDirectory = Path.Combine(Path.GetTempPath(), "vtu-settings-" + Guid.NewGuid());
+            Directory.CreateDirectory(_testDirectory);
+            Environment.CurrentDirectory = _testDirectory;
 
-            // Backup existing if any
-            string? backup = null;
-            if (File.Exists(settingsFile))
+            if (File.Exists(_settingsFile))
             {
-                backup = File.ReadAllText(settingsFile);
-                File.Delete(settingsFile);
+                File.Delete(_settingsFile);
+            }
+        }
+
+        public void Dispose()
+        {
+            Environment.CurrentDirectory = _originalCurrentDirectory;
+
+            if (_settingsExisted)
+            {
+                File.WriteAllText(_settingsFile, _settingsBackup);
+            }
+            else if (File.Exists(_settingsFile))
+            {
+                File.Delete(_settingsFile);
             }
 
-            try
+            LocalizationHelper.Base = _localizationBackup;
+            if (Directory.Exists(_testDirectory))
             {
-                // Ensure it does not exist
-                Assert.False(File.Exists(settingsFile));
-
-                // Act
-                var settings = Settings.LoadSettings();
-
-                // Assert default properties
-                Assert.NotNull(settings);
-                Assert.Equal("", settings.ApiKey);
-                Assert.Equal("", settings.Language);
-                Assert.False(settings.DirectUpload);
-            }
-            finally
-            {
-                // Restore backup
-                if (backup != null)
-                {
-                    File.WriteAllText(settingsFile, backup);
-                }
+                Directory.Delete(_testDirectory, true);
             }
         }
 
         [Fact]
-        public void LoadSettings_MissingFile_ReturnsDefaultSettings()
+        public void GetSettingsFilename_ReturnsExpectedApplicationDataPath()
         {
-            // Arrange
-            var settingsFile = Settings.GetSettingsFilename();
-            var backupFile = settingsFile + ".bak";
-            bool hadExistingSettings = File.Exists(settingsFile);
+            var expectedPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "vtu_settings.json");
 
-            try
+            Assert.Equal(expectedPath, Settings.GetSettingsFilename());
+        }
+
+        [Fact]
+        public void LoadSettings_MissingFile_ReturnsDefault()
+        {
+            var settings = Settings.LoadSettings();
+
+            Assert.NotNull(settings);
+            Assert.Equal("", settings.ApiKey);
+            Assert.Equal("", settings.Language);
+            Assert.False(settings.DirectUpload);
+        }
+
+        [Fact]
+        public void SaveSettings_ValidSettings_WritesFileAndLoadsLocalization()
+        {
+            var languageFile = Path.Combine(_testDirectory, "en.json");
+            File.WriteAllText(languageFile, JsonConvert.SerializeObject(new LocalizationBase
             {
-                if (hadExistingSettings)
-                {
-                    File.Move(settingsFile, backupFile);
-                }
-
-                // Double check that it's gone
-                if (File.Exists(settingsFile))
-                {
-                    File.Delete(settingsFile);
-                }
-
-                // Act
-                var settings = Settings.LoadSettings();
-
-                // Assert
-                Assert.NotNull(settings);
-                Assert.Equal("", settings.ApiKey);
-                Assert.Equal("", settings.Language);
-                Assert.False(settings.DirectUpload);
-            }
-            finally
+                MainForm_More = "Test More"
+            }));
+            var settings = new Settings
             {
-                // Restore
-                if (hadExistingSettings)
-                {
-                    if (File.Exists(settingsFile))
-                    {
-                        File.Delete(settingsFile);
-                    }
-                    File.Move(backupFile, settingsFile);
-                }
-            }
+                ApiKey = "test-api-key",
+                Language = languageFile,
+                DirectUpload = true
+            };
+
+            Settings.SaveSettings(settings);
+
+            Assert.True(File.Exists(_settingsFile));
+            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(_settingsFile));
+            Assert.NotNull(persisted);
+            Assert.Equal("test-api-key", persisted.ApiKey);
+            Assert.Equal(languageFile, persisted.Language);
+            Assert.True(persisted.DirectUpload);
+            Assert.NotNull(LocalizationHelper.Base);
+            Assert.Equal("Test More", LocalizationHelper.Base.MainForm_More);
+        }
+
+        [Fact]
+        public void SaveSettings_DefaultLanguageClearsLanguageBeforePersisting()
+        {
+            var settings = new Settings
+            {
+                ApiKey = "test-api-key",
+                Language = "Default (English)",
+                DirectUpload = true
+            };
+
+            Settings.SaveSettings(settings);
+
+            Assert.Equal("", settings.Language);
+            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(_settingsFile));
+            Assert.NotNull(persisted);
+            Assert.Equal("", persisted.Language);
+            Assert.Equal("test-api-key", persisted.ApiKey);
+            Assert.True(persisted.DirectUpload);
         }
     }
 }
