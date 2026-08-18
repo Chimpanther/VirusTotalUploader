@@ -1,13 +1,14 @@
-﻿using System.IO;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 using uploader;
 using Newtonsoft.Json;
-using Xunit;
 
 namespace uploader.Tests
 {
+    [TestClass]
     public class LocalizationHelperTests
     {
-        [Fact]
+        [TestMethod]
         public void Load_ValidJson_SetsBase()
         {
             // Arrange
@@ -26,12 +27,12 @@ namespace uploader.Tests
                 LocalizationHelper.Load(testPath);
 
                 // Assert
-                Assert.NotNull(LocalizationHelper.Base);
-                Assert.Equal("Test Drag File", LocalizationHelper.Base.MainForm_DragFile);
-                Assert.Equal("Test More", LocalizationHelper.Base.MainForm_More);
+                Assert.IsNotNull(LocalizationHelper.Base);
+                Assert.AreEqual("Test Drag File", LocalizationHelper.Base.MainForm_DragFile);
+                Assert.AreEqual("Test More", LocalizationHelper.Base.MainForm_More);
 
                 // Verify default values remain for properties not in JSON
-                Assert.Equal("Settings", LocalizationHelper.Base.SettingsForm_Title);
+                Assert.AreEqual("Settings", LocalizationHelper.Base.SettingsForm_Title);
             }
             finally
             {
