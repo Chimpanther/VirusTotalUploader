@@ -14,6 +14,9 @@ namespace uploader
         public string Language = "";
         public bool DirectUpload = false;
 
+        private static Settings? _cachedSettings;
+        private static readonly object _cacheLock = new object();
+
         public static string GetSettingsFilename()
         {
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vtu_settings.json");
@@ -34,18 +37,35 @@ namespace uploader
 
             File.WriteAllText(file, serialized);
 
+            lock (_cacheLock)
+            {
+                _cachedSettings = JsonConvert.DeserializeObject<Settings>(serialized) ?? new Settings();
+            }
+
             LocalizationHelper.Update();
         }
 
         public static Settings LoadSettings()
         {
-            var file = GetSettingsFilename();
+            lock (_cacheLock)
+            {
+                if (_cachedSettings != null)
+                {
+                    return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+                }
 
-            if (!File.Exists(file))
-                return new Settings();
+                var file = GetSettingsFilename();
 
-            var context = File.ReadAllText(file);
-            return JsonConvert.DeserializeObject<Settings>(context);
+                if (!File.Exists(file))
+                {
+                    _cachedSettings = new Settings();
+                    return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+                }
+
+                var context = File.ReadAllText(file);
+                _cachedSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
+                return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+            }
         }
     }
 }

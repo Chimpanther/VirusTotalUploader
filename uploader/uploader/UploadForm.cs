@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -79,6 +79,12 @@ namespace uploader
 
         private void DisplayError(string error)
         {
+            if (InvokeRequired)
+            {
+                this.Invoke(new Action(() => DisplayError(error)));
+                return;
+            }
+
             using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
@@ -147,7 +153,12 @@ namespace uploader
                 // It is recommended to further restrict allowed hosts using a whitelist of known-safe domains.
                 try
                 {
-                    Process.Start(uri.AbsoluteUri);
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = uri.AbsoluteUri,
+                        UseShellExecute = true
+                    };
+                    Process.Start(psi);
                 }
                 catch (Exception ex)
                 {
@@ -247,10 +258,11 @@ namespace uploader
             }
             else
             {
-                _cachedMd5 = Utils.GetMD5(_path);
-                mdTextbox.Text = _cachedMd5;
-                shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                var hashes = Utils.GetFileHashes(_path);
+                _cachedMd5 = hashes.MD5;
+                mdTextbox.Text = hashes.MD5;
+                shaTextbox.Text = hashes.SHA1;
+                sha2Textbox.Text = hashes.SHA256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
