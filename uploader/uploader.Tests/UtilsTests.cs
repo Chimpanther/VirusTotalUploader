@@ -20,18 +20,17 @@ namespace uploader.Tests
         [Fact]
         public void GetMD5_ValidFile_ReturnsCorrectHash()
         {
-            // Arrange
+            VerifyHashMatch("hello world", "5EB63BBBE01EEED093CB22BB8F5ACDC3");
+        }
+
+        private void VerifyHashMatch(string content, string expectedHash)
+        {
             string tempFile = Path.GetTempFileName();
             try
             {
-                File.WriteAllText(tempFile, "hello world");
-
-                // Act
+                File.WriteAllText(tempFile, content);
                 string hash = Utils.GetMD5(tempFile);
-
-                // Assert
-                // MD5 of "hello world" is 5EB63BBBE01EEED093CB22BB8F5ACDC3
-                Xunit.Assert.Equal("5EB63BBBE01EEED093CB22BB8F5ACDC3", hash);
+                Xunit.Assert.Equal(expectedHash, hash);
             }
             finally
             {
