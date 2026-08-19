@@ -178,15 +178,16 @@ namespace uploader
 
             FileHashesResult fileHashes = (!_isFolder && fullPath == _path && _cachedHashes != null) ? _cachedHashes : Utils.GetHashes(fullPath);
 
-            bool reportFound = await CheckFileReportAsync(fileName, fileHashes, token);
+            bool reportFound = await CheckFileReportAsync(fullPath, fileHashes, token);
             if (!reportFound)
             {
-                await ScanNewFileAsync(fileName, fullPath, token);
+                await ScanNewFileAsync(fullPath, token);
             }
         }
 
-        private async Task<bool> CheckFileReportAsync(string fileName, FileHashesResult fileHashes, CancellationToken token)
+        private async Task<bool> CheckFileReportAsync(string fullPath, FileHashesResult fileHashes, CancellationToken token)
         {
+            var fileName = Path.GetFileName(fullPath);
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", fileHashes.SHA256);
@@ -225,8 +226,9 @@ namespace uploader
             }
         }
 
-        private async Task ScanNewFileAsync(string fileName, string fullPath, CancellationToken token)
+        private async Task ScanNewFileAsync(string fullPath, CancellationToken token)
         {
+            var fileName = Path.GetFileName(fullPath);
             ChangeStatus($"Uploading {fileName}...");
             var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
             scanRequest.AddParameter("apikey", _settings.ApiKey);
