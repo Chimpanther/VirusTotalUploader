@@ -26,7 +26,7 @@ namespace uploader
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
-        private string _cachedMd5;
+        private FileHashesResult _cachedHashes;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -147,7 +147,12 @@ namespace uploader
                 // It is recommended to further restrict allowed hosts using a whitelist of known-safe domains.
                 try
                 {
-                    Process.Start(uri.AbsoluteUri);
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = uri.AbsoluteUri,
+                        UseShellExecute = true
+                    };
+                    Process.Start(psi);
                 }
                 catch (Exception ex)
                 {
@@ -172,15 +177,29 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
-            reportRequest.AddParameter("resource", fileMd5);
+            FileHashesResult fileHashes = (!_isFolder && fullPath == _path && _cachedHashes != null) ? _cachedHashes : Utils.GetHashes(fullPath);
+            reportRequest.AddParameter("resource", fileHashes.SHA256);
+            reportRequest.AddParameter("resource", fileHashes.MD5);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
 
             token.ThrowIfCancellationRequested();
+
+            if (!reportResponse.IsSuccessful)
+            {
+                if (reportResponse.StatusCode == (System.Net.HttpStatusCode)204)
+                {
+                    DisplayError($"Rate limit exceeded checking {fileName}. Please try again later.");
+                    return;
+                }
+                else
+                {
+                    DisplayError($"API error checking {fileName}. Status code: {reportResponse.StatusCode}");
+                    return;
+                }
+            }
 
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
@@ -191,7 +210,7 @@ namespace uploader
             }
             catch (RuntimeBinderException)
             {
-                // Json does not contain permalink which means it's a new file (or the request failed)
+                // Json does not contain permalink which means it's a new file
                 ChangeStatus($"Uploading {fileName}...");
                 var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
                 scanRequest.AddParameter("apikey", _settings.ApiKey);
@@ -201,6 +220,20 @@ namespace uploader
                 var scanContent = scanResponse.Content;
 
                 token.ThrowIfCancellationRequested();
+
+                if (!scanResponse.IsSuccessful)
+                {
+                    if (scanResponse.StatusCode == (System.Net.HttpStatusCode)204)
+                    {
+                        DisplayError($"Rate limit exceeded uploading {fileName}. Please try again later.");
+                        return;
+                    }
+                    else
+                    {
+                        DisplayError($"API error uploading {fileName}. Status code: {scanResponse.StatusCode}");
+                        return;
+                    }
+                }
 
                 dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
@@ -247,10 +280,10 @@ namespace uploader
             }
             else
             {
-                _cachedMd5 = Utils.GetMD5(_path);
-                mdTextbox.Text = _cachedMd5;
-                shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                _cachedHashes = Utils.GetHashes(_path);
+                mdTextbox.Text = _cachedHashes.MD5;
+                shaTextbox.Text = _cachedHashes.SHA1;
+                sha2Textbox.Text = _cachedHashes.SHA256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
