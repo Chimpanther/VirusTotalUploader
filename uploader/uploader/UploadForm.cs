@@ -28,6 +28,13 @@ namespace uploader
         private List<string> _filesToUpload;
         private FileHashesResult _cachedHashes;
 
+        private class UploadJob
+        {
+            public string FullPath { get; set; }
+            public string FileName { get; set; }
+            public FileHashesResult Hashes { get; set; }
+        }
+
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
             _path = path;
@@ -173,25 +180,28 @@ namespace uploader
 
             token.ThrowIfCancellationRequested();
 
-            var fileName = Path.GetFileName(fullPath);
-            ChangeStatus($"Checking {fileName}...");
+            var job = new UploadJob
+            {
+                FullPath = fullPath,
+                FileName = Path.GetFileName(fullPath),
+                Hashes = (!_isFolder && fullPath == _path && _cachedHashes != null) ? _cachedHashes : Utils.GetHashes(fullPath)
+            };
 
-            FileHashesResult fileHashes = (!_isFolder && fullPath == _path && _cachedHashes != null) ? _cachedHashes : Utils.GetHashes(fullPath);
+            ChangeStatus($"Checking {job.FileName}...");
 
-            bool reportFound = await CheckFileReportAsync(fullPath, fileHashes, token);
+            bool reportFound = await CheckFileReportAsync(job, token);
             if (!reportFound)
             {
-                await ScanNewFileAsync(fullPath, token);
+                await ScanNewFileAsync(job, token);
             }
         }
 
-        private async Task<bool> CheckFileReportAsync(string fullPath, FileHashesResult fileHashes, CancellationToken token)
+        private async Task<bool> CheckFileReportAsync(UploadJob job, CancellationToken token)
         {
-            var fileName = Path.GetFileName(fullPath);
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", fileHashes.SHA256);
-            reportRequest.AddParameter("resource", fileHashes.MD5);
+            reportRequest.AddParameter("resource", job.Hashes.SHA256);
+            reportRequest.AddParameter("resource", job.Hashes.MD5);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
@@ -202,11 +212,11 @@ namespace uploader
             {
                 if (reportResponse.StatusCode == System.Net.HttpStatusCode.NoContent)
                 {
-                    DisplayError($"Rate limit exceeded checking {fileName}. Please try again later.");
+                    DisplayError($"Rate limit exceeded checking {job.FileName}. Please try again later.");
                 }
                 else
                 {
-                    DisplayError($"API error checking {fileName}. Status code: {reportResponse.StatusCode}");
+                    DisplayError($"API error checking {job.FileName}. Status code: {reportResponse.StatusCode}");
                 }
                 return true; // We return true to avoid attempting an upload if there's an API error
             }
@@ -226,13 +236,12 @@ namespace uploader
             }
         }
 
-        private async Task ScanNewFileAsync(string fullPath, CancellationToken token)
+        private async Task ScanNewFileAsync(UploadJob job, CancellationToken token)
         {
-            var fileName = Path.GetFileName(fullPath);
-            ChangeStatus($"Uploading {fileName}...");
+            ChangeStatus($"Uploading {job.FileName}...");
             var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
             scanRequest.AddParameter("apikey", _settings.ApiKey);
-            scanRequest.AddFile("file", fullPath);
+            scanRequest.AddFile("file", job.FullPath);
 
             var scanResponse = await _client.ExecuteAsync(scanRequest, token);
             var scanContent = scanResponse.Content;
@@ -243,11 +252,11 @@ namespace uploader
             {
                 if (scanResponse.StatusCode == System.Net.HttpStatusCode.NoContent)
                 {
-                    DisplayError($"Rate limit exceeded uploading {fileName}. Please try again later.");
+                    DisplayError($"Rate limit exceeded uploading {job.FileName}. Please try again later.");
                 }
                 else
                 {
-                    DisplayError($"API error uploading {fileName}. Status code: {scanResponse.StatusCode}");
+                    DisplayError($"API error uploading {job.FileName}. Status code: {scanResponse.StatusCode}");
                 }
                 return;
             }
@@ -264,7 +273,7 @@ namespace uploader
             }
             catch (Exception ex)
             {
-                DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+                DisplayError($"Failed to get link for {job.FileName}. Error: {ex.Message}");
             }
         }
 
