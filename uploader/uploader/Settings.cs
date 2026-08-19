@@ -19,6 +19,9 @@ namespace uploader
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vtu_settings.json");
         }
 
+        private static Settings _cachedSettings = null;
+        private static readonly object _cacheLock = new object();
+
         public static void SaveSettings(Settings settings)
         {
             if (settings.Language.Contains("Default"))
@@ -34,18 +37,52 @@ namespace uploader
 
             File.WriteAllText(file, serialized);
 
+            lock (_cacheLock)
+            {
+                _cachedSettings = settings;
+            }
+
             LocalizationHelper.Update();
         }
 
         public static Settings LoadSettings()
         {
+            lock (_cacheLock)
+            {
+                if (_cachedSettings != null)
+                {
+                    return _cachedSettings;
+                }
+            }
+
             var file = GetSettingsFilename();
 
+            Settings loadedSettings;
             if (!File.Exists(file))
-                return new Settings();
+            {
+                loadedSettings = new Settings();
+            }
+            else
+            {
+                var context = File.ReadAllText(file);
+                loadedSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
+            }
 
-            var context = File.ReadAllText(file);
-            return JsonConvert.DeserializeObject<Settings>(context);
+            lock (_cacheLock)
+            {
+                _cachedSettings = loadedSettings;
+            }
+
+            return loadedSettings;
+        }
+
+        // For testing purposes
+        public static void ClearCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedSettings = null;
+            }
         }
     }
 }

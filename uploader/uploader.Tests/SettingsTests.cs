@@ -10,6 +10,7 @@ namespace uploader.Tests
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefault()
         {
+            Settings.ClearCache();
             var settingsFile = Settings.GetSettingsFilename();
 
             // Backup existing if any
@@ -47,6 +48,7 @@ namespace uploader.Tests
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefaultSettings()
         {
+            Settings.ClearCache();
             // Arrange
             var settingsFile = Settings.GetSettingsFilename();
             var backupFile = settingsFile + ".bak";

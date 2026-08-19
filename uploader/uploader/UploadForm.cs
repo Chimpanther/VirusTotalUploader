@@ -26,7 +26,14 @@ namespace uploader
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
-        private string _cachedMd5;
+        private FileHashesResult _cachedHashes;
+
+        private class UploadJob
+        {
+            public string FullPath { get; set; }
+            public string FileName { get; set; }
+            public FileHashesResult Hashes { get; set; }
+        }
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -147,7 +154,12 @@ namespace uploader
                 // It is recommended to further restrict allowed hosts using a whitelist of known-safe domains.
                 try
                 {
-                    Process.Start(uri.AbsoluteUri);
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = uri.AbsoluteUri,
+                        UseShellExecute = true
+                    };
+                    Process.Start(psi);
                 }
                 catch (Exception ex)
                 {
@@ -168,19 +180,46 @@ namespace uploader
 
             token.ThrowIfCancellationRequested();
 
-            var fileName = Path.GetFileName(fullPath);
-            ChangeStatus($"Checking {fileName}...");
+            var job = new UploadJob
+            {
+                FullPath = fullPath,
+                FileName = Path.GetFileName(fullPath),
+                Hashes = (!_isFolder && fullPath == _path && _cachedHashes != null) ? _cachedHashes : Utils.GetHashes(fullPath)
+            };
+
+            ChangeStatus($"Checking {job.FileName}...");
+
+            bool reportFound = await CheckFileReportAsync(job, token);
+            if (!reportFound)
+            {
+                await ScanNewFileAsync(job, token);
+            }
+        }
+
+        private async Task<bool> CheckFileReportAsync(UploadJob job, CancellationToken token)
+        {
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
-
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
-            reportRequest.AddParameter("resource", fileMd5);
+            reportRequest.AddParameter("resource", job.Hashes.SHA256);
+            reportRequest.AddParameter("resource", job.Hashes.MD5);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
 
             token.ThrowIfCancellationRequested();
+
+            if (!reportResponse.IsSuccessful)
+            {
+                if (reportResponse.StatusCode == System.Net.HttpStatusCode.NoContent)
+                {
+                    DisplayError($"Rate limit exceeded checking {job.FileName}. Please try again later.");
+                }
+                else
+                {
+                    DisplayError($"API error checking {job.FileName}. Status code: {reportResponse.StatusCode}");
+                }
+                return true; // We return true to avoid attempting an upload if there's an API error
+            }
 
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
@@ -188,34 +227,53 @@ namespace uploader
             {
                 var reportLink = reportJson.permalink.ToString();
                 OpenUrlSafe(reportLink);
+                return true;
             }
             catch (RuntimeBinderException)
             {
-                // Json does not contain permalink which means it's a new file (or the request failed)
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
+                // Json does not contain permalink which means it's a new file
+                return false;
+            }
+        }
 
-                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
-                var scanContent = scanResponse.Content;
+        private async Task ScanNewFileAsync(UploadJob job, CancellationToken token)
+        {
+            ChangeStatus($"Uploading {job.FileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _settings.ApiKey);
+            scanRequest.AddFile("file", job.FullPath);
 
-                token.ThrowIfCancellationRequested();
+            var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+            var scanContent = scanResponse.Content;
 
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+            token.ThrowIfCancellationRequested();
 
-                try
+            if (!scanResponse.IsSuccessful)
+            {
+                if (scanResponse.StatusCode == System.Net.HttpStatusCode.NoContent)
                 {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
-
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    OpenUrlSafe(scanLink);
+                    DisplayError($"Rate limit exceeded uploading {job.FileName}. Please try again later.");
                 }
-                catch (Exception ex)
+                else
                 {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
+                    DisplayError($"API error uploading {job.FileName}. Status code: {scanResponse.StatusCode}");
                 }
+                return;
+            }
+
+            dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+
+            try
+            {
+                string sha256 = scanJson.sha256.ToString();
+                string scanId = scanJson.scan_id.ToString();
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                DisplayError($"Failed to get link for {job.FileName}. Error: {ex.Message}");
             }
         }
 
@@ -247,10 +305,10 @@ namespace uploader
             }
             else
             {
-                _cachedMd5 = Utils.GetMD5(_path);
-                mdTextbox.Text = _cachedMd5;
-                shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                _cachedHashes = Utils.GetHashes(_path);
+                mdTextbox.Text = _cachedHashes.MD5;
+                shaTextbox.Text = _cachedHashes.SHA1;
+                sha2Textbox.Text = _cachedHashes.SHA256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
