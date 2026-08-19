@@ -175,10 +175,20 @@ namespace uploader
 
             var fileName = Path.GetFileName(fullPath);
             ChangeStatus($"Checking {fileName}...");
-            var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
-            reportRequest.AddParameter("apikey", _settings.ApiKey);
 
             FileHashesResult fileHashes = (!_isFolder && fullPath == _path && _cachedHashes != null) ? _cachedHashes : Utils.GetHashes(fullPath);
+
+            bool reportFound = await CheckFileReportAsync(fileName, fileHashes, token);
+            if (!reportFound)
+            {
+                await ScanNewFileAsync(fileName, fullPath, token);
+            }
+        }
+
+        private async Task<bool> CheckFileReportAsync(string fileName, FileHashesResult fileHashes, CancellationToken token)
+        {
+            var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
+            reportRequest.AddParameter("apikey", _settings.ApiKey);
             reportRequest.AddParameter("resource", fileHashes.SHA256);
             reportRequest.AddParameter("resource", fileHashes.MD5);
 
@@ -189,16 +199,15 @@ namespace uploader
 
             if (!reportResponse.IsSuccessful)
             {
-                if (reportResponse.StatusCode == (System.Net.HttpStatusCode)204)
+                if (reportResponse.StatusCode == System.Net.HttpStatusCode.NoContent)
                 {
                     DisplayError($"Rate limit exceeded checking {fileName}. Please try again later.");
-                    return;
                 }
                 else
                 {
                     DisplayError($"API error checking {fileName}. Status code: {reportResponse.StatusCode}");
-                    return;
                 }
+                return true; // We return true to avoid attempting an upload if there's an API error
             }
 
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
@@ -207,48 +216,53 @@ namespace uploader
             {
                 var reportLink = reportJson.permalink.ToString();
                 OpenUrlSafe(reportLink);
+                return true;
             }
             catch (RuntimeBinderException)
             {
                 // Json does not contain permalink which means it's a new file
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
+                return false;
+            }
+        }
 
-                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
-                var scanContent = scanResponse.Content;
+        private async Task ScanNewFileAsync(string fileName, string fullPath, CancellationToken token)
+        {
+            ChangeStatus($"Uploading {fileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _settings.ApiKey);
+            scanRequest.AddFile("file", fullPath);
 
-                token.ThrowIfCancellationRequested();
+            var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+            var scanContent = scanResponse.Content;
 
-                if (!scanResponse.IsSuccessful)
+            token.ThrowIfCancellationRequested();
+
+            if (!scanResponse.IsSuccessful)
+            {
+                if (scanResponse.StatusCode == System.Net.HttpStatusCode.NoContent)
                 {
-                    if (scanResponse.StatusCode == (System.Net.HttpStatusCode)204)
-                    {
-                        DisplayError($"Rate limit exceeded uploading {fileName}. Please try again later.");
-                        return;
-                    }
-                    else
-                    {
-                        DisplayError($"API error uploading {fileName}. Status code: {scanResponse.StatusCode}");
-                        return;
-                    }
+                    DisplayError($"Rate limit exceeded uploading {fileName}. Please try again later.");
                 }
-
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
-
-                try
+                else
                 {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
+                    DisplayError($"API error uploading {fileName}. Status code: {scanResponse.StatusCode}");
+                }
+                return;
+            }
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    OpenUrlSafe(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
-                }
+            dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+
+            try
+            {
+                string sha256 = scanJson.sha256.ToString();
+                string scanId = scanJson.scan_id.ToString();
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
             }
         }
 
