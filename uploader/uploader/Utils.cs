@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -16,7 +16,7 @@ namespace uploader
                 var sb = new StringBuilder();
                 foreach (var b in hashBytes)
                 {
-                    sb.Append(b.ToString("x2"));
+                    sb.Append(b.ToString("X2"));
                 }
                 return sb.ToString();
             }
