@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using uploader;
 using Xunit;
@@ -87,5 +87,45 @@ namespace uploader.Tests
                 }
             }
         }
-    }
+
+        [Fact]
+        public void SaveSettings_LanguageContainsDefault_ResetsLanguageToEmpty()
+        {
+            // Arrange
+            var settingsFile = Settings.GetSettingsFilename();
+            var backupFile = settingsFile + ".bak";
+            bool hadExistingSettings = File.Exists(settingsFile);
+
+            try
+            {
+                if (hadExistingSettings)
+                {
+                    File.Move(settingsFile, backupFile);
+                }
+
+                var settingsToSave = new Settings { Language = "System Default" };
+
+                // Act
+                Settings.SaveSettings(settingsToSave);
+
+                // Assert
+                Assert.Equal("", settingsToSave.Language);
+
+                var loadedSettings = Settings.LoadSettings();
+                Assert.Equal("", loadedSettings.Language);
+            }
+            finally
+            {
+                // Restore
+                if (hadExistingSettings)
+                {
+                    if (File.Exists(settingsFile))
+                    {
+                        File.Delete(settingsFile);
+                    }
+                    File.Move(backupFile, settingsFile);
+                }
+            }
+        }
+}
 }
