@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -27,6 +27,7 @@ namespace uploader
         private bool _isFolder;
         private List<string> _filesToUpload;
         private string _cachedMd5;
+        private string _cachedSha256;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -172,9 +173,22 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
+            string fileMd5;
+            string fileSha256;
 
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
+            if (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5) && !string.IsNullOrEmpty(_cachedSha256))
+            {
+                fileMd5 = _cachedMd5;
+                fileSha256 = _cachedSha256;
+            }
+            else
+            {
+                var hashes = Utils.GetHashes(fullPath);
+                fileMd5 = hashes.MD5;
+                fileSha256 = hashes.SHA256;
+            }
+
+            reportRequest.AddParameter("resource", fileSha256);
             reportRequest.AddParameter("resource", fileMd5);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
@@ -247,10 +261,11 @@ namespace uploader
             }
             else
             {
-                _cachedMd5 = Utils.GetMD5(_path);
+                var hashes = Utils.GetHashes(_path);
+                _cachedMd5 = hashes.MD5;
+                _cachedSha256 = hashes.SHA256;
                 mdTextbox.Text = _cachedMd5;
-                shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                sha2Textbox.Text = _cachedSha256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
