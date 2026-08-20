@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -26,7 +26,7 @@ namespace uploader
         private RestClient _client;
         private bool _isFolder;
         private List<string> _filesToUpload;
-        private string _cachedMd5;
+        private string _cachedSha256;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -172,10 +172,9 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
-            reportRequest.AddParameter("resource", fileMd5);
+            string fileSha256 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedSha256)) ? _cachedSha256 : Utils.GetSHA256(fullPath);
+            reportRequest.AddParameter("resource", fileSha256);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
@@ -241,16 +240,14 @@ namespace uploader
         {
             if (_isFolder)
             {
-                mdTextbox.Text = "N/A (Folder)";
                 shaTextbox.Text = "N/A (Folder)";
                 sha2Textbox.Text = "N/A (Folder)";
             }
             else
             {
-                _cachedMd5 = Utils.GetMD5(_path);
-                mdTextbox.Text = _cachedMd5;
+                _cachedSha256 = Utils.GetSHA256(_path);
                 shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                sha2Textbox.Text = _cachedSha256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
