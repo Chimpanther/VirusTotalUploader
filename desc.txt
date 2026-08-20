@@ -1,0 +1,7 @@
+🎯 **What:** Removed unused `System.Threading.Tasks` import from `uploader/uploader/Settings.cs`.
+
+💡 **Why:** The file does not use any features from `System.Threading.Tasks`. Removing it improves code readability and maintainability by keeping the imports relevant to the file's actual dependencies.
+
+✅ **Verification:** Ran tests in `uploader.Tests` using `dotnet test` to confirm this change did not break anything.
+
+✨ **Result:** Improved code health by removing an unused using directive.
