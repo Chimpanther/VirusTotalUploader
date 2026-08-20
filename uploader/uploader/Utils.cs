@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,13 +12,8 @@ namespace uploader
             using (var md5 = MD5.Create())
             using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                var hashBytes = md5.ComputeHash(stream);
-                var sb = new StringBuilder();
-                foreach (var b in hashBytes)
-                {
-                    sb.Append(b.ToString("x2"));
-                }
-                return sb.ToString();
+                var checksum = md5.ComputeHash(stream);
+                return BitConverter.ToString(checksum).Replace("-", string.Empty);
             }
         }
 
@@ -41,5 +36,6 @@ namespace uploader
                 return BitConverter.ToString(checksum).Replace("-", string.Empty);
             }
         }
+
     }
 }
