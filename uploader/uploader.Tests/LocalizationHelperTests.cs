@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.IO;
 using uploader;
 using Xunit;
 
 namespace uploader.Tests
 {
+    [Collection("Sequential")]
     public class LocalizationHelperTests : IDisposable
     {
         private const string LocalFolder = "local";
@@ -12,6 +13,7 @@ namespace uploader.Tests
         public LocalizationHelperTests()
         {
             // Clean up before tests
+            LocalizationHelper.Base = null;
             if (Directory.Exists(LocalFolder))
             {
                 Directory.Delete(LocalFolder, true);
@@ -21,6 +23,7 @@ namespace uploader.Tests
         public void Dispose()
         {
             // Clean up after tests
+            LocalizationHelper.Base = null;
             if (Directory.Exists(LocalFolder))
             {
                 Directory.Delete(LocalFolder, true);
@@ -71,6 +74,45 @@ namespace uploader.Tests
             Assert.Equal(2, languages.Length);
             Assert.Contains(file1, languages);
             Assert.Contains(file2, languages);
+        }
+
+        [Fact]
+        public void Load_ValidJson_SetsBaseProperties()
+        {
+            // Arrange
+            string testFilePath = "test_localization.json";
+            string jsonContent = @"{ ""MainForm_DragFile"": ""Drag here custom"" }";
+            File.WriteAllText(testFilePath, jsonContent);
+
+            try
+            {
+                // Act
+                LocalizationHelper.Load(testFilePath);
+
+                // Assert
+                Assert.NotNull(LocalizationHelper.Base);
+                Assert.Equal("Drag here custom", LocalizationHelper.Base.MainForm_DragFile);
+                // Assert that default value is maintained for not specified properties
+                Assert.Equal("More", LocalizationHelper.Base.MainForm_More);
+            }
+            finally
+            {
+                // Cleanup
+                if (File.Exists(testFilePath))
+                {
+                    File.Delete(testFilePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Load_FileNotFound_ThrowsFileNotFoundException()
+        {
+            // Arrange
+            string nonExistentPath = "non_existent_localization.json";
+
+            // Act & Assert
+            Assert.Throws<FileNotFoundException>(() => LocalizationHelper.Load(nonExistentPath));
         }
     }
 }
