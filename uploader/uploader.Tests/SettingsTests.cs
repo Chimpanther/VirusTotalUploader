@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using uploader;
 using Xunit;
+using Newtonsoft.Json;
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace uploader.Tests
 {
@@ -83,6 +86,62 @@ namespace uploader.Tests
                     {
                         File.Delete(settingsFile);
                     }
+                    File.Move(backupFile, settingsFile);
+                }
+            }
+        }
+
+        [Fact]
+        public void LoadSettings_ExistingFile_ReturnsDeserializedSettings()
+        {
+            // Arrange
+            var settingsFile = Settings.GetSettingsFilename();
+            var backupFile = settingsFile + ".bak";
+            bool hadExistingSettings = File.Exists(settingsFile);
+
+            try
+            {
+                if (hadExistingSettings)
+                {
+                    File.Move(settingsFile, backupFile);
+                }
+
+                // Double check that it's gone
+                if (File.Exists(settingsFile))
+                {
+                    File.Delete(settingsFile);
+                }
+
+                var expectedSettings = new Settings
+                {
+                    ApiKey = "TestApiKey123",
+                    Language = "English",
+                    DirectUpload = true
+                };
+
+                var json = JsonConvert.SerializeObject(expectedSettings);
+                File.WriteAllText(settingsFile, json);
+
+                // Act
+                var settings = Settings.LoadSettings();
+
+                // Assert
+                Assert.NotNull(settings);
+                Assert.Equal("TestApiKey123", settings.ApiKey);
+                Assert.Equal("English", settings.Language);
+                Assert.True(settings.DirectUpload);
+            }
+            finally
+            {
+                // Clean up the test file
+                if (File.Exists(settingsFile))
+                {
+                    File.Delete(settingsFile);
+                }
+
+                // Restore
+                if (hadExistingSettings)
+                {
                     File.Move(backupFile, settingsFile);
                 }
             }
