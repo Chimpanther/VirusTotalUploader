@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -12,7 +11,7 @@ namespace uploader
     {
         private const string LocalFolder = "local";
         public static LocalizationBase Base;
-        
+
         public static string[] GetLanguages()
         {
             return Directory.Exists(LocalFolder) ? Directory.GetFiles(LocalFolder) : new []{ "" };
