@@ -6,7 +6,6 @@
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
-
         /// <summary>
         /// Clean up any resources being used.
         /// </summary>
@@ -19,9 +18,7 @@
             }
             base.Dispose(disposing);
         }
-
         #region Windows Form Designer generated code
-
         /// <summary>
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
@@ -74,15 +71,6 @@
             this.statusLabel.TabIndex = 2;
             this.statusLabel.Text = "Idle.";
             //
-            // darkLabel1
-            //
-            this.darkLabel1.AutoSize = true;
-            this.darkLabel1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.darkLabel1.Location = new System.Drawing.Point(6, 22);
-            this.darkLabel1.Name = "darkLabel1";
-            this.darkLabel1.Size = new System.Drawing.Size(33, 13);
-            this.darkLabel1.TabIndex = 0;
-            this.darkLabel1.Text = "MD5:";
             //
             //
             // shaTextbox
@@ -144,11 +132,8 @@
             this.settingsGroup.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
-
         }
-
         #endregion
-
         private DarkUI.Controls.DarkGroupBox settingsGroup;
         private DarkUI.Controls.DarkButton uploadButton;
         private DarkUI.Controls.DarkLabel statusLabel;
