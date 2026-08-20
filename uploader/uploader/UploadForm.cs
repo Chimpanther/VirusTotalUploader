@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -237,7 +237,7 @@ namespace uploader
             Task.Run(async () => await UploadAsync(token));
         }
 
-        private void UploadForm_Load(object sender, EventArgs e)
+        private async void UploadForm_Load(object sender, EventArgs e)
         {
             if (_isFolder)
             {
@@ -247,10 +247,11 @@ namespace uploader
             }
             else
             {
-                _cachedMd5 = Utils.GetMD5(_path);
-                mdTextbox.Text = _cachedMd5;
-                shaTextbox.Text = Utils.GetSHA1(_path);
-                sha2Textbox.Text = Utils.GetSHA256(_path);
+                var hashes = await Task.Run(() => Utils.GetAllHashes(_path));
+                _cachedMd5 = hashes.MD5;
+                mdTextbox.Text = hashes.MD5;
+                shaTextbox.Text = hashes.SHA1;
+                sha2Textbox.Text = hashes.SHA256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;

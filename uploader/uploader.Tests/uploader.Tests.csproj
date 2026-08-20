@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Compile Include="..\uploader\Utils.cs" Link="Utils.cs" />
+    <Compile Include="..\uploader\FileHashesResult.cs" Link="FileHashesResult.cs" />
     <Compile Include="..\uploader\Settings.cs" />
     <Compile Include="..\uploader\LocalizationBase.cs" />
     <Compile Include="..\uploader\LocalizationHelper.cs" />
