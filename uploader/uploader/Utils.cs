@@ -6,8 +6,14 @@ namespace uploader
 {
     public class FileHashesResult
     {
-        public string MD5 { get; set; } = string.Empty;
-        public string SHA256 { get; set; } = string.Empty;
+        public string MD5 { get; set; }
+        public string SHA256 { get; set; }
+
+        public FileHashesResult()
+        {
+            MD5 = string.Empty;
+            SHA256 = string.Empty;
+        }
     }
 
     public static class Utils
@@ -32,8 +38,8 @@ namespace uploader
 
                 return new FileHashesResult
                 {
-                    MD5 = BitConverter.ToString(md5.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty),
-                    SHA256 = BitConverter.ToString(sha256.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty)
+                    MD5 = BitConverter.ToString(md5.Hash ?? new byte[0]).Replace("-", string.Empty),
+                    SHA256 = BitConverter.ToString(sha256.Hash ?? new byte[0]).Replace("-", string.Empty)
                 };
             }
         }
