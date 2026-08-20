@@ -34,8 +34,6 @@
             this.statusLabel = new DarkUI.Controls.DarkLabel();
             this.darkLabel1 = new DarkUI.Controls.DarkLabel();
             this.mdTextbox = new DarkUI.Controls.DarkTextBox();
-            this.shaTextbox = new DarkUI.Controls.DarkTextBox();
-            this.darkLabel2 = new DarkUI.Controls.DarkLabel();
             this.sha2Textbox = new DarkUI.Controls.DarkTextBox();
             this.darkLabel3 = new DarkUI.Controls.DarkLabel();
             this.settingsGroup.SuspendLayout();

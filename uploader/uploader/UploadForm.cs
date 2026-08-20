@@ -257,7 +257,6 @@ namespace uploader
             if (_isFolder)
             {
                 mdTextbox.Text = "N/A (Folder)";
-                shaTextbox.Text = "N/A (Folder)";
                 sha2Textbox.Text = "N/A (Folder)";
             }
             else
