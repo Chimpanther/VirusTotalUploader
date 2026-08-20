@@ -13,12 +13,7 @@ namespace uploader
             using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 var hashBytes = md5.ComputeHash(stream);
-                var sb = new StringBuilder();
-                foreach (var b in hashBytes)
-                {
-                    sb.Append(b.ToString("x2"));
-                }
-                return sb.ToString();
+                return BitConverter.ToString(hashBytes).Replace("-", string.Empty);
             }
         }
 
