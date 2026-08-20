@@ -84,15 +84,6 @@
             this.darkLabel1.TabIndex = 0;
             this.darkLabel1.Text = "MD5:";
             //
-            // mdTextbox
-            //
-            this.mdTextbox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(69)))), ((int)(((byte)(73)))), ((int)(((byte)(74)))));
-            this.mdTextbox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.mdTextbox.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.mdTextbox.Location = new System.Drawing.Point(73, 20);
-            this.mdTextbox.Name = "mdTextbox";
-            this.mdTextbox.Size = new System.Drawing.Size(280, 20);
-            this.mdTextbox.TabIndex = 1;
             //
             // shaTextbox
             //
