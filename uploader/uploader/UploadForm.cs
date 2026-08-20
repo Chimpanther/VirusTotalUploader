@@ -176,7 +176,8 @@ namespace uploader
             string fileMd5;
             string fileSha256;
 
-            if (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5) && !string.IsNullOrEmpty(_cachedSha256))
+            bool canUseCachedHashes = !_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5) && !string.IsNullOrEmpty(_cachedSha256);
+            if (canUseCachedHashes)
             {
                 fileMd5 = _cachedMd5;
                 fileSha256 = _cachedSha256;
