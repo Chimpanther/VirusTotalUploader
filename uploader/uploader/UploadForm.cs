@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -144,10 +144,21 @@ namespace uploader
 
             if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
-                // It is recommended to further restrict allowed hosts using a whitelist of known-safe domains.
+                var host = uri.Host.ToLowerInvariant();
+                if (host != "virustotal.com" && host != "www.virustotal.com")
+                {
+                    Debug.WriteLine($"Blocked attempt to open non-whitelisted URL: {url}");
+                    return;
+                }
+
                 try
                 {
-                    Process.Start(uri.AbsoluteUri);
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = uri.AbsoluteUri,
+                        UseShellExecute = true
+                    };
+                    Process.Start(psi);
                 }
                 catch (Exception ex)
                 {
