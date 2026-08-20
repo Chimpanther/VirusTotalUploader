@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -172,10 +172,16 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
-            reportRequest.AddParameter("resource", fileMd5);
+            var sha256Task = Task.Run(() => Utils.GetSHA256(fullPath));
+            var md5Task = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5))
+                ? Task.FromResult(_cachedMd5)
+                : Task.Run(() => Utils.GetMD5(fullPath));
+
+            await Task.WhenAll(sha256Task, md5Task);
+
+            reportRequest.AddParameter("resource", await sha256Task);
+            reportRequest.AddParameter("resource", await md5Task);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
