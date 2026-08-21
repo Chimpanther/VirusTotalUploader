@@ -37,9 +37,9 @@ namespace uploader
 
                 return new FileHashesResult
                 {
-                    MD5 = BitConverter.ToString(md5.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty),
-                    SHA1 = BitConverter.ToString(sha1.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty),
-                    SHA256 = BitConverter.ToString(sha256.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty)
+                    MD5 = BitConverter.ToString(md5.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty).ToLowerInvariant(),
+                    SHA1 = BitConverter.ToString(sha1.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty).ToLowerInvariant(),
+                    SHA256 = BitConverter.ToString(sha256.Hash ?? Array.Empty<byte>()).Replace("-", string.Empty).ToLowerInvariant()
                 };
             }
         }
@@ -50,7 +50,7 @@ namespace uploader
             using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 var hashBytes = md5.ComputeHash(stream);
-                return BitConverter.ToString(hashBytes).Replace("-", string.Empty);
+                return BitConverter.ToString(hashBytes).Replace("-", string.Empty).ToLowerInvariant();
             }
         }
 
@@ -60,7 +60,7 @@ namespace uploader
             using (var sha = SHA256.Create())
             {
                 var checksum = sha.ComputeHash(stream);
-                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                return BitConverter.ToString(checksum).Replace("-", string.Empty).ToLowerInvariant();
             }
         }
 
@@ -70,7 +70,7 @@ namespace uploader
             using (var sha = SHA1.Create())
             {
                 var checksum = sha.ComputeHash(stream);
-                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+                return BitConverter.ToString(checksum).Replace("-", string.Empty).ToLowerInvariant();
             }
         }
     }
