@@ -1,8 +1,8 @@
 # VirusTotalUploader netto-innholds-kartlegging - Evidence
 
-No evidence has been recorded yet.
+Evidence bundles recorded during consolidation execution:
 
-## EvidenceBundleDraft
+## EvidenceBundleDraft (Crypto Tests)
 
 - Artifact key: crypto-tests
 - Type: test
@@ -10,7 +10,7 @@ No evidence has been recorded yet.
 - Summary: 17 tests passed after adding SHA-256/null/empty coverage and aligning MD5 expected case; existing nullable warnings remain.
 - Verifier: local dotnet test
 
-## EvidenceBundleDraft
+## EvidenceBundleDraft (Localization Tests)
 
 - Artifact key: localization-tests
 - Type: test
@@ -18,7 +18,7 @@ No evidence has been recorded yet.
 - Summary: 24 tests passed after isolating LocalizationHelper tests in unique temp directories and adding Load/Update/Export coverage.
 - Verifier: local dotnet test
 
-## EvidenceBundleDraft
+## EvidenceBundleDraft (Legacy Build Status)
 
 - Artifact key: legacy-build-blocked
 - Type: build
@@ -26,7 +26,7 @@ No evidence has been recorded yet.
 - Summary: Build did not reach source compilation; dotnet SDK stopped on existing non-string .resx resources with MSB3822/MSB3823. No msbuild/devenv/vswhere command is available.
 - Verifier: local command inspection
 
-## EvidenceBundleDraft
+## EvidenceBundleDraft (Final Test and Diff Check)
 
 - Artifact key: final-test-diff
 - Type: verification

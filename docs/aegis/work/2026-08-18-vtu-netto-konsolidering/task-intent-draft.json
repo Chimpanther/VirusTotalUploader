@@ -2,12 +2,24 @@
   "schemaVersion": "aegis.schema.v0",
   "requestedOutcome": "Utfør en verifiserbar, begrenset konsolidering av unikt innhold fra PR-kartleggingen mot origin/master.",
   "goal": "Utfør en verifiserbar, begrenset konsolidering av unikt innhold fra PR-kartleggingen mot origin/master.",
-  "successEvidence": [],
+  "successEvidence": [
+    "origin/master remains the authoritative baseline for the consolidation branch",
+    "Each implemented slice has a focused diff and a fresh test/build result",
+    "No PR is mechanically merged when its diff contains superseded or unrelated content"
+  ],
   "stopCondition": "Stop when success evidence is satisfied or a blocker/risk requires pause.",
-  "nonGoals": [],
+  "nonGoals": [
+    "closing or merging GitHub PRs",
+    "pushing or opening a PR without explicit publication scope",
+    "changing VirusTotal API semantics, settings encryption, or upload concurrency without a separately verified slice"
+  ],
   "scope": "PR 37-94; kun repo-eid kode og tester; ingen PR-lukking, merge, push eller eksterne opplastinger.",
   "changeKinds": [
     "refactor"
   ],
-  "riskHints": []
+  "riskHints": [
+    "legacy .NET Framework / Windows-only build surface",
+    "overlapping PR heads with superseded files and generated junk",
+    "security and upload-flow changes require explicit contract and regression evidence"
+  ]
 }

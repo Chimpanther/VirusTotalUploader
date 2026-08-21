@@ -107,6 +107,7 @@ namespace uploader
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to open URL: {ex.Message}");
+                statusLabel.Text = "Failed to open URL. Please check your browser settings.";
             }
         }
     }

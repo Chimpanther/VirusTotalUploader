@@ -9,7 +9,7 @@
   "evidenceRefs": [
     "dotnet test uploader/uploader.Tests/uploader.Tests.csproj --no-restore (26 passed); dotnet build uploader/uploader/uploader.csproj --no-restore (blocked MSB3822/MSB3823)"
   ],
-  "blockedOn": null,
+  "blockedOn": "Windows/MSBuild verification",
   "nextStep": "Obtain Windows Developer PowerShell/MSBuild verification and explicit scope decision for DPAPI/API-URL/hash-removal/UploadForm slices",
   "updatedAt": "2026-08-18"
 }

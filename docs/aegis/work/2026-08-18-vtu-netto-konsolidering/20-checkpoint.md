@@ -6,7 +6,7 @@
 - Blocked on: none
 - Next step: Read baseline refs and start the next safe slice.
 
-## Checkpoint Update
+## Checkpoint Update (1 - Crypto Tests)
 
 - Current todo: Review and consolidate the remaining unique PR slices
 - Active slice: Crypto-utils tests: SHA-256 coverage, null/empty edge cases, and MD5 output case alignment
@@ -17,7 +17,7 @@
 - Blocked on: none
 - Next step: Review LocalizationHelper Load/Export/Update candidates against the baseline
 
-## DriftCheckDraft
+## DriftCheckDraft (1 - Crypto Tests)
 
 - Scope status: within crypto-utils test boundary
 - Compatibility status: hash runtime semantics unchanged; test-only except expected-value correction
@@ -26,7 +26,7 @@
 - remaining PRs include overlapping UploadForm, Settings security, and API URL changes requiring separate review
 - Advisory decision: continue
 
-## Checkpoint Update
+## Checkpoint Update (2 - Localization Tests)
 
 - Current todo: Review and consolidate the remaining unique PR slices
 - Active slice: Review Settings and UploadForm candidate PRs for contract-safe consolidation
@@ -38,7 +38,7 @@
 - Next step: Inspect Settings DPAPI and Save/Load test candidates; stop if contract or compatibility is unresolved
 
 ## DriftCheckDraft
-
+## DriftCheckDraft (2 - Localization Tests)
 - Scope status: within test-owner boundary; no runtime source changed
 - Compatibility status: existing LocalizationHelper semantics exercised without change
 - Retirement status: no new fallback or compatibility path
@@ -47,16 +47,16 @@
 - Advisory decision: continue
 
 ## Checkpoint Update
-
+## Checkpoint Update (3 - Final Review)
 - Current todo: Windows/MSBuild verification and approval for remaining risky units
 - Active slice: Completion boundary review: available tests pass, legacy app build is blocked by missing MSBuild/Visual Studio resource tooling
 - Completed todos:
 - Baseline review; crypto-utils tests; LocalizationHelper tests; Settings tests; safe Process.Start URL hardening
 - Evidence refs:
-- dotnet test uploader/uploader.Tests/uploader.Tests.csproj --no-restore (26 passed); dotnet build uploader/uploader/uploader.csproj --no-restore (blocked MSB3822/MSB3823)
+- Blocked on: Windows/MSBuild verification
 - Blocked on: none
 - Next step: Obtain Windows Developer PowerShell/MSBuild verification and explicit scope decision for DPAPI/API-URL/hash-removal/UploadForm slices
-
+## DriftCheckDraft (3 - Final Review)
 ## DriftCheckDraft
 
 - Scope status: safe test and URL slices only; remaining plan units intentionally out of scope

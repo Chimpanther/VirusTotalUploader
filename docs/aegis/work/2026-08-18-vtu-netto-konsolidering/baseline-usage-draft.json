@@ -14,5 +14,5 @@
   "missingRefs": [
     "Windows/MSBuild build availability not yet checked"
   ],
-  "decision": "continue"
+  "decision": "pause-for-user"
 }

@@ -12,8 +12,11 @@ This proof bundle is an advisory Aegis Method Pack record. It does not determine
 ## Impact
 
 - Compatibility boundary: Compatibility boundary not yet refined.
-- Non-goals:
-- none
+- Non-goals (none additional beyond scope exclusions):
+- closing or merging GitHub PRs
+- pushing or opening a PR without explicit publication scope
+- changing VirusTotal API semantics, settings encryption, or upload concurrency without a separately verified slice
+- external VirusTotal uploads
 
 ## Evidence Bundle Refs
 
