@@ -37,7 +37,6 @@
 - Blocked on: none
 - Next step: Inspect Settings DPAPI and Save/Load test candidates; stop if contract or compatibility is unresolved
 
-## DriftCheckDraft
 ## DriftCheckDraft (2 - Localization Tests)
 - Scope status: within test-owner boundary; no runtime source changed
 - Compatibility status: existing LocalizationHelper semantics exercised without change
@@ -46,7 +45,6 @@
 - Settings and UploadForm candidates remain contract-sensitive and Windows-build dependent
 - Advisory decision: continue
 
-## Checkpoint Update
 ## Checkpoint Update (3 - Final Review)
 - Current todo: Windows/MSBuild verification and approval for remaining risky units
 - Active slice: Completion boundary review: available tests pass, legacy app build is blocked by missing MSBuild/Visual Studio resource tooling
@@ -54,10 +52,9 @@
 - Baseline review; crypto-utils tests; LocalizationHelper tests; Settings tests; safe Process.Start URL hardening
 - Evidence refs:
 - Blocked on: Windows/MSBuild verification
-- Blocked on: none
 - Next step: Obtain Windows Developer PowerShell/MSBuild verification and explicit scope decision for DPAPI/API-URL/hash-removal/UploadForm slices
+
 ## DriftCheckDraft (3 - Final Review)
-## DriftCheckDraft
 
 - Scope status: safe test and URL slices only; remaining plan units intentionally out of scope
 - Compatibility status: legacy app compatibility remains unverified because native MSBuild is unavailable

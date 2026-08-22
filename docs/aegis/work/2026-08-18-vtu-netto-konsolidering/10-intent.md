@@ -25,7 +25,6 @@
 
 - none
 
-## BaselineUsageDraft
 ## BaselineUsageDraft (Initial)
 - Required baseline refs:
 - `origin/master` at `cd4172b15c83cf09bf5b4817f8edcc30a166a2c6`
@@ -62,4 +61,4 @@ These records are Method Pack drafts / hints, not authoritative runtime decision
 - 85-vtu-netto-kartlegging.md
 - Missing refs:
 - Windows/MSBuild build availability not yet checked
-- Advisory decision: continue
+- Advisory decision: pause-for-user

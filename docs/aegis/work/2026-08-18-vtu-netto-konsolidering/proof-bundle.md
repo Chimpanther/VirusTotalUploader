@@ -11,7 +11,7 @@ This proof bundle is an advisory Aegis Method Pack record. It does not determine
 
 ## Impact
 
-- Compatibility boundary: Compatibility boundary not yet refined.
+- Compatibility boundary: preserve the .NET Framework 4.8 WinForms runtime and existing VirusTotal request semantics unless a slice explicitly owns and verifies a contract change.
 - Non-goals (none additional beyond scope exclusions):
 - closing or merging GitHub PRs
 - pushing or opening a PR without explicit publication scope
