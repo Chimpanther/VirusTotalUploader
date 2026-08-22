@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using uploader;
 using Xunit;
@@ -108,5 +108,37 @@ namespace uploader.Tests
         {
             AssertFileHash(Utils.GetSHA256, null, "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855");
         }
-    }
+
+        [Fact]
+        public void GetSHA256_NonExistentFile_ThrowsFileNotFoundException()
+        {
+            // Arrange
+            string fakePath = "this_file_does_not_exist_sha256.txt";
+
+            // Act & Assert
+            Assert.Throws<FileNotFoundException>(() => Utils.GetSHA256(fakePath));
+        }
+
+        [Fact]
+        public void GetSHA256_ValidFile_ReturnsCorrectHash()
+        {
+            // Arrange
+            string tempFile = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(tempFile, "hello world");
+
+                // Act
+                string hash = Utils.GetSHA256(tempFile);
+
+                // Assert
+                // SHA256 of "hello world" is B94D27B9934D3E08A52E52D7DA7DABFAC484EFE37A5380EE9088F7ACE2EFCDE9
+                Assert.Equal("B94D27B9934D3E08A52E52D7DA7DABFAC484EFE37A5380EE9088F7ACE2EFCDE9", hash);
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
+        }
+}
 }
