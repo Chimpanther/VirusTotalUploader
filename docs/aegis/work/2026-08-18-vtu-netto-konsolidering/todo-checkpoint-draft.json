@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-18-vtu-netto-konsolidering",
+  "currentTodo": "Windows/MSBuild verification and approval for remaining risky units",
+  "completedTodos": [
+    "Baseline review; crypto-utils tests; LocalizationHelper tests; Settings tests; safe Process.Start URL hardening"
+  ],
+  "activeSlice": "Completion boundary review: available tests pass, legacy app build is blocked by missing MSBuild/Visual Studio resource tooling",
+  "evidenceRefs": [
+    "dotnet test uploader/uploader.Tests/uploader.Tests.csproj --no-restore (26 passed); dotnet build uploader/uploader/uploader.csproj --no-restore (blocked MSB3822/MSB3823)"
+  ],
+  "blockedOn": "Windows/MSBuild verification",
+  "nextStep": "Obtain Windows Developer PowerShell/MSBuild verification and explicit scope decision for DPAPI/API-URL/hash-removal/UploadForm slices",
+  "updatedAt": "2026-08-18"
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-18-vtu-netto-konsolidering",
+  "lastCheckpointRef": "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/todo-checkpoint-draft.json",
+  "resumeInstruction": "Re-read 10-intent.md, preserve branch and task-owned delta, then run native MSBuild before any further runtime refactor",
+  "knownPartialWork": [
+    "Baseline review; crypto-utils tests; LocalizationHelper tests; Settings tests; safe Process.Start URL hardening"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/10-intent.md",
+    "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/20-checkpoint.md",
+    "docs/aegis/work/2026-08-18-vtu-netto-konsolidering/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "A passing net8 test project does not prove the .NET Framework WinForms app builds"
+  ]
+}

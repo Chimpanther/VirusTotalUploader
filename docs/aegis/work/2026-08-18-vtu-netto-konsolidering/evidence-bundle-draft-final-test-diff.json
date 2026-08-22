@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "final-test-diff",
+  "type": "verification",
+  "source": "dotnet test uploader/uploader.Tests/uploader.Tests.csproj --no-restore --verbosity minimal && git diff --check",
+  "summary": "26 tests passed and diff whitespace check returned exit 0 with fail-fast behavior.",
+  "verifier": "local dotnet test and git"
+}

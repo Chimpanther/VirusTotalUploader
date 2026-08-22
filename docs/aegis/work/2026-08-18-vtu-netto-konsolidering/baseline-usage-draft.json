@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-18-vtu-netto-konsolidering",
+  "requiredBaselineRefs": [
+    "origin/master@cd4172b"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "origin/master@cd4172b"
+  ],
+  "citedInPlanRefs": [
+    "85-vtu-netto-kartlegging.md"
+  ],
+  "missingRefs": [
+    "Windows/MSBuild build availability not yet checked"
+  ],
+  "decision": "pause-for-user"
+}

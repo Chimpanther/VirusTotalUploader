@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "Utils",
+    "test project",
+    "LocalizationHelper",
+    "Settings",
+    "UploadForm"
+  ],
+  "owners": ["existing source owners; tests remain in uploader/uploader.Tests"],
+  "invariants": ["hash output format and file-not-found behavior", "no real VirusTotal upload", "no secrets in code or evidence"],
+  "compatBoundary": "preserve the .NET Framework 4.8 WinForms runtime and existing VirusTotal request semantics unless a slice explicitly owns and verifies a contract change",
+  "nonGoals": [
+    "mechanical keep-head merge",
+    "PR lifecycle actions",
+    "broad refactoring",
+    "unverified DPAPI/API-URL changes"
+  ]
+}
