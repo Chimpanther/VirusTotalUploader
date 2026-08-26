@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace uploader
@@ -65,6 +61,14 @@ namespace uploader
                 var context = File.ReadAllText(file);
                 _cachedSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
                 return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+            }
+        }
+
+        public static void ClearCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedSettings = null;
             }
         }
     }

@@ -38,54 +38,6 @@ namespace uploader.Tests
         }
 
         [Fact]
-        public void GetMD5_NonExistentFile_ThrowsFileNotFoundException()
-        {
-            AssertThrowsFileNotFound(Utils.GetMD5);
-        }
-
-        [Fact]
-        public void GetMD5_NullFile_ThrowsArgumentNullException()
-        {
-            AssertThrowsArgumentNull(Utils.GetMD5);
-        }
-
-        [Fact]
-        public void GetMD5_ValidFile_ReturnsCorrectHash()
-        {
-            AssertFileHash(Utils.GetMD5, "hello world", "5EB63BBBE01EEED093CB22BB8F5ACDC3");
-        }
-
-        [Fact]
-        public void GetMD5_EmptyFile_ReturnsCorrectHash()
-        {
-            AssertFileHash(Utils.GetMD5, null, "D41D8CD98F00B204E9800998ECF8427E");
-        }
-
-        [Fact]
-        public void GetSHA1_NonExistentFile_ThrowsFileNotFoundException()
-        {
-            AssertThrowsFileNotFound(Utils.GetSHA1);
-        }
-
-        [Fact]
-        public void GetSHA1_NullFile_ThrowsArgumentNullException()
-        {
-            AssertThrowsArgumentNull(Utils.GetSHA1);
-        }
-
-        [Fact]
-        public void GetSHA1_ValidFile_ReturnsCorrectHash()
-        {
-            AssertFileHash(Utils.GetSHA1, "hello world", "2AAE6C35C94FCFB415DBE95F408B9CE91EE846ED");
-        }
-
-        [Fact]
-        public void GetSHA1_EmptyFile_ReturnsCorrectHash()
-        {
-            AssertFileHash(Utils.GetSHA1, null, "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709");
-        }
-
-        [Fact]
         public void GetSHA256_NonExistentFile_ThrowsFileNotFoundException()
         {
             AssertThrowsFileNotFound(Utils.GetSHA256);

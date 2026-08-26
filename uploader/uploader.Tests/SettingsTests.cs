@@ -26,6 +26,7 @@ namespace uploader.Tests
             Directory.CreateDirectory(_testDirectory);
             Environment.CurrentDirectory = _testDirectory;
 
+            Settings.ClearCache();
             if (File.Exists(_settingsFile))
             {
                 File.Delete(_settingsFile);
@@ -71,6 +72,41 @@ namespace uploader.Tests
             Assert.Equal("", settings.ApiKey);
             Assert.Equal("", settings.Language);
             Assert.False(settings.DirectUpload);
+        }
+
+        [Fact]
+        public void LoadSettings_ExistingFile_RestoresApiKey()
+        {
+            var settings = LoadExistingSettings();
+            Assert.Equal("TestApiKey123", settings.ApiKey);
+        }
+
+        [Fact]
+        public void LoadSettings_ExistingFile_RestoresLanguage()
+        {
+            var settings = LoadExistingSettings();
+            Assert.Equal("English", settings.Language);
+        }
+
+        [Fact]
+        public void LoadSettings_ExistingFile_RestoresDirectUpload()
+        {
+            var settings = LoadExistingSettings();
+            Assert.True(settings.DirectUpload);
+        }
+
+        private Settings LoadExistingSettings()
+        {
+            var expected = new Settings
+            {
+                ApiKey = "TestApiKey123",
+                Language = "English",
+                DirectUpload = true
+            };
+
+            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(expected));
+
+            return Settings.LoadSettings();
         }
 
         [Fact]

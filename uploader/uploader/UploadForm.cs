@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -25,8 +23,8 @@ namespace uploader
         private CancellationTokenSource _cancellationTokenSource;
         private RestClient _client;
         private bool _isFolder;
-        private List<string> _filesToUpload;
-        private string _cachedMd5;
+        private IEnumerable<string> _filesToUpload;
+        private string _cachedSha256;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
         {
@@ -116,7 +114,7 @@ namespace uploader
 
             if (_isFolder)
             {
-                _filesToUpload = Directory.GetFiles(_path, "*.*", SearchOption.AllDirectories).ToList();
+                _filesToUpload = Directory.EnumerateFiles(_path, "*.*", SearchOption.AllDirectories);
             }
             else
             {
@@ -150,7 +148,13 @@ namespace uploader
 
             if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
-                // It is recommended to further restrict allowed hosts using a whitelist of known-safe domains.
+                var host = uri.Host.ToLowerInvariant();
+                if (host != "virustotal.com" && host != "www.virustotal.com")
+                {
+                    Debug.WriteLine($"Blocked attempt to open non-whitelisted URL: {url}");
+                    return;
+                }
+
                 try
                 {
                     var psi = new ProcessStartInfo
@@ -183,10 +187,9 @@ namespace uploader
             ChangeStatus($"Checking {fileName}...");
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
-            reportRequest.AddParameter("resource", Utils.GetSHA256(fullPath));
 
-            string fileMd5 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedMd5)) ? _cachedMd5 : Utils.GetMD5(fullPath);
-            reportRequest.AddParameter("resource", fileMd5);
+            string fileSha256 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedSha256)) ? _cachedSha256 : Utils.GetSHA256(fullPath);
+            reportRequest.AddParameter("resource", fileSha256);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
@@ -252,17 +255,12 @@ namespace uploader
         {
             if (_isFolder)
             {
-                mdTextbox.Text = "N/A (Folder)";
-                shaTextbox.Text = "N/A (Folder)";
                 sha2Textbox.Text = "N/A (Folder)";
             }
             else
             {
-                var hashes = Utils.GetFileHashes(_path);
-                _cachedMd5 = hashes.MD5;
-                mdTextbox.Text = hashes.MD5;
-                shaTextbox.Text = hashes.SHA1;
-                sha2Textbox.Text = hashes.SHA256;
+                _cachedSha256 = Utils.GetSHA256(_path);
+                sha2Textbox.Text = _cachedSha256;
             }
 
             settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;

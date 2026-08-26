@@ -21,6 +21,7 @@ namespace uploader.Tests
             Directory.CreateDirectory(_testDirectory);
             Environment.CurrentDirectory = _testDirectory;
 
+            Settings.ClearCache();
             _settingsFile = Settings.GetSettingsFilename();
             _settingsExisted = File.Exists(_settingsFile);
             _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
