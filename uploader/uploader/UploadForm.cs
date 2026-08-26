@@ -23,7 +23,7 @@ namespace uploader
         private CancellationTokenSource _cancellationTokenSource;
         private RestClient _client;
         private bool _isFolder;
-        private List<string> _filesToUpload;
+        private IEnumerable<string> _filesToUpload;
         private string _cachedMd5;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
@@ -114,7 +114,7 @@ namespace uploader
 
             if (_isFolder)
             {
-                _filesToUpload = Directory.GetFiles(_path, "*.*", SearchOption.AllDirectories).ToList();
+                _filesToUpload = Directory.EnumerateFiles(_path, "*.*", SearchOption.AllDirectories);
             }
             else
             {
@@ -148,7 +148,13 @@ namespace uploader
 
             if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             {
-                // It is recommended to further restrict allowed hosts using a whitelist of known-safe domains.
+                var host = uri.Host.ToLowerInvariant();
+                if (host != "virustotal.com" && host != "www.virustotal.com")
+                {
+                    Debug.WriteLine($"Blocked attempt to open non-whitelisted URL: {url}");
+                    return;
+                }
+
                 try
                 {
                     var psi = new ProcessStartInfo
