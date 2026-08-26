@@ -63,5 +63,13 @@ namespace uploader
                 return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
             }
         }
+
+        public static void ClearCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedSettings = null;
+            }
+        }
     }
 }
