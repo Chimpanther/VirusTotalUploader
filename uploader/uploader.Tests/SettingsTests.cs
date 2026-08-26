@@ -75,7 +75,27 @@ namespace uploader.Tests
         }
 
         [Fact]
-        public void LoadSettings_ExistingFile_ReturnsDeserializedSettings()
+        public void LoadSettings_ExistingFile_RestoresApiKey()
+        {
+            var settings = LoadExistingSettings();
+            Assert.Equal("TestApiKey123", settings.ApiKey);
+        }
+
+        [Fact]
+        public void LoadSettings_ExistingFile_RestoresLanguage()
+        {
+            var settings = LoadExistingSettings();
+            Assert.Equal("English", settings.Language);
+        }
+
+        [Fact]
+        public void LoadSettings_ExistingFile_RestoresDirectUpload()
+        {
+            var settings = LoadExistingSettings();
+            Assert.True(settings.DirectUpload);
+        }
+
+        private Settings LoadExistingSettings()
         {
             var expected = new Settings
             {
@@ -86,12 +106,7 @@ namespace uploader.Tests
 
             File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(expected));
 
-            var settings = Settings.LoadSettings();
-
-            Assert.NotNull(settings);
-            Assert.Equal("TestApiKey123", settings.ApiKey);
-            Assert.Equal("English", settings.Language);
-            Assert.True(settings.DirectUpload);
+            return Settings.LoadSettings();
         }
 
         [Fact]
