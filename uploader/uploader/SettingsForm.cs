@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -52,8 +50,6 @@ namespace uploader
             openButton.Text = LocalizationHelper.Base.SettingsForm_Open;
             this.Text = LocalizationHelper.Base.SettingsForm_Title;
             directCheckbox.Text = LocalizationHelper.Base.SettingsForm_DirectUpload;
-
-            //LocalizationHelper.Export();
         }
 
         private void darkButton1_Click(object sender, EventArgs e)
