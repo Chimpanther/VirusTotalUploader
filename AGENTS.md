@@ -110,7 +110,7 @@ For UI or upload-flow changes, verify as much of this as possible:
 - App starts without crashing.
 - Drag/drop of a normal file opens `UploadForm`.
 - Launching with a single file path argument opens `UploadForm`.
-- MD5, SHA1, and SHA256 fields populate for files.
+- SHA256 field populates for files.
 - Folder input does not attempt to hash the folder itself.
 - Settings dialog opens and saves expected values.
 - Missing API key shows a clear error.
