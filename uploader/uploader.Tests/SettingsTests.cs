@@ -95,7 +95,18 @@ namespace uploader.Tests
             Assert.True(settings.DirectUpload);
         }
 
-        private Settings LoadExistingSettings()
+                [Fact]
+        public void LoadSettings_InvalidJson_ThrowsException()
+        {
+            File.WriteAllText(_settingsFile, "{ invalid }");
+
+            var ex = Record.Exception(() => Settings.LoadSettings());
+
+            Assert.NotNull(ex);
+            Assert.IsType<JsonReaderException>(ex);
+        }
+
+private Settings LoadExistingSettings()
         {
             var expected = new Settings
             {
