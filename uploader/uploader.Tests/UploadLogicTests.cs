@@ -63,6 +63,13 @@ namespace uploader.Tests
             }
         }
 
+
+        private RestClient CreateMockClient(Func<HttpRequestMessage, HttpResponseMessage> handlerFunc)
+        {
+            var handler = new MockRestHandler { HandlerFunc = handlerFunc };
+            return new RestClient(new RestClientOptions("https://api.test.com") { ConfigureMessageHandler = _ => handler });
+        }
+
         public UploadLogicTests()
         {
             _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -134,20 +141,11 @@ namespace uploader.Tests
             Settings.SaveSettings(settings);
             var callbacks = new MockUploadCallbacks();
 
-            var handler = new MockRestHandler
+            var client = CreateMockClient(req =>
             {
-                HandlerFunc = req =>
-                {
-                    var content = new StringContent("{\"permalink\": \"https://www.virustotal.com/gui/file/12345\"}");
-                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
-                }
-            };
-
-            var options = new RestClientOptions("https://api.test.com")
-            {
-                ConfigureMessageHandler = _ => handler
-            };
-            var client = new RestClient(options);
+                var content = new StringContent("{\"permalink\": \"https://www.virustotal.com/gui/file/12345\"}");
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+            });
 
             var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks, client);
 
@@ -166,25 +164,16 @@ namespace uploader.Tests
             Settings.SaveSettings(settings);
             var callbacks = new MockUploadCallbacks();
 
-            var handler = new MockRestHandler
+            var client = CreateMockClient(req =>
             {
-                HandlerFunc = req =>
-                {
-                    if (req.RequestUri.ToString().Contains("report")) {
-                        var content = new StringContent("{}"); // No permalink -> throws RuntimeBinderException
-                        return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
-                    } else {
-                        var content = new StringContent("{\"sha256\": \"testsha\", \"scan_id\": \"testid\"}");
-                        return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
-                    }
+                if (req.RequestUri.ToString().Contains("report")) {
+                    var content = new StringContent("{}"); // No permalink -> throws RuntimeBinderException
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+                } else {
+                    var content = new StringContent("{\"sha256\": \"testsha\", \"scan_id\": \"testid\"}");
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
                 }
-            };
-
-            var options = new RestClientOptions("https://api.test.com")
-            {
-                ConfigureMessageHandler = _ => handler
-            };
-            var client = new RestClient(options);
+            });
 
             var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks, client);
 
