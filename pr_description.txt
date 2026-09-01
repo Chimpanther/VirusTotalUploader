@@ -1,0 +1,3 @@
+🎯 **What:** The previous implementation in `UploadForm.cs` instantiated a new task for every file in the directory (using `UploadFileAsync`) without limiting the number of concurrent tasks.
+⚠️ **Risk:** When selecting a folder containing many files, this lack of limits on concurrency would lead to resource exhaustion (out of memory, port exhaustion, excessive thread allocation), potentially crashing the application and overwhelming the VirusTotal API.
+🛡️ **Solution:** The fix limits the concurrency to 4 simultaneous uploads by wrapping the `UploadFileAsync` execution in a `SemaphoreSlim(4)` block.

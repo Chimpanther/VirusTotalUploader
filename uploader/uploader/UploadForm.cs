@@ -121,19 +121,34 @@ namespace uploader
                 _filesToUpload = new List<string> { _path };
             }
 
-            var tasks = new List<Task>();
-            foreach (var file in _filesToUpload)
+            using (var semaphore = new SemaphoreSlim(4))
             {
-                tasks.Add(UploadFileAsync(file, token));
-            }
+                var tasks = new List<Task>();
+                foreach (var file in _filesToUpload)
+                {
+                    await semaphore.WaitAsync(token);
+                    async Task UploadWithSemaphoreAsync(string f)
+                    {
+                        try
+                        {
+                            await UploadFileAsync(f, token);
+                        }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
+                    }
+                    tasks.Add(UploadWithSemaphoreAsync(file));
+                }
 
-            try
-            {
-                await Task.WhenAll(tasks);
-            }
-            catch (OperationCanceledException)
-            {
-                // Cancellation was requested, do nothing special here.
+                try
+                {
+                    await Task.WhenAll(tasks);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation was requested, do nothing special here.
+                }
             }
 
             Finish(true);
