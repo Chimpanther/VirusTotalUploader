@@ -89,7 +89,7 @@ namespace uploader
             }
         }
 
-        private async Task UploadAsync(CancellationToken token)
+        private bool ValidateApiKey()
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
@@ -97,7 +97,7 @@ namespace uploader
                 {
                     messageBox.ShowDialog();
                 }
-                return;
+                return false;
             }
 
             if (_settings.ApiKey.Length != 64)
@@ -106,6 +106,16 @@ namespace uploader
                 {
                     messageBox.ShowDialog();
                 }
+                return false;
+            }
+
+            return true;
+        }
+
+        private async Task UploadAsync(CancellationToken token)
+        {
+            if (!ValidateApiKey())
+            {
                 return;
             }
 
