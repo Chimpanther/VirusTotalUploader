@@ -16,7 +16,15 @@ namespace uploader
 
         public static void Load(string path)
         {
-            var context = File.ReadAllText(path);
+            var basePath = Path.GetFullPath(LocalFolder) + Path.DirectorySeparatorChar;
+            var fullPath = Path.GetFullPath(path);
+
+            if (!fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException("Path traversal detected.");
+            }
+
+            var context = File.ReadAllText(fullPath);
             Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
         }
 

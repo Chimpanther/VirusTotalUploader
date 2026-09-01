@@ -89,7 +89,9 @@ namespace uploader.Tests
         [Fact]
         public void Load_ValidJson_SetsBaseProperty()
         {
-            var languageFile = Path.Combine(_testDirectory, "language.json");
+            var localDir = Path.Combine(_testDirectory, "local");
+            Directory.CreateDirectory(localDir);
+            var languageFile = Path.Combine(localDir, "language.json");
             File.WriteAllText(languageFile, "{\"MainForm_More\":\"Test More\"}");
 
             LocalizationHelper.Load(languageFile);
@@ -101,7 +103,9 @@ namespace uploader.Tests
         [Fact]
         public void Load_EmptyFile_SetsBaseToNull()
         {
-            var languageFile = Path.Combine(_testDirectory, "empty.json");
+            var localDir = Path.Combine(_testDirectory, "local");
+            Directory.CreateDirectory(localDir);
+            var languageFile = Path.Combine(localDir, "empty.json");
             File.WriteAllText(languageFile, "");
 
             LocalizationHelper.Load(languageFile);
@@ -112,7 +116,9 @@ namespace uploader.Tests
         [Fact]
         public void Load_InvalidJson_ThrowsJsonReaderException()
         {
-            var languageFile = Path.Combine(_testDirectory, "invalid.json");
+            var localDir = Path.Combine(_testDirectory, "local");
+            Directory.CreateDirectory(localDir);
+            var languageFile = Path.Combine(localDir, "invalid.json");
             File.WriteAllText(languageFile, "not valid json");
 
             Assert.Throws<JsonReaderException>(() => LocalizationHelper.Load(languageFile));
@@ -121,7 +127,9 @@ namespace uploader.Tests
         [Fact]
         public void Load_MissingFile_ThrowsFileNotFoundException()
         {
-            var languageFile = Path.Combine(_testDirectory, "missing.json");
+            var localDir = Path.Combine(_testDirectory, "local");
+            Directory.CreateDirectory(localDir);
+            var languageFile = Path.Combine(localDir, "missing.json");
 
             Assert.Throws<FileNotFoundException>(() => LocalizationHelper.Load(languageFile));
         }
@@ -129,7 +137,9 @@ namespace uploader.Tests
         [Fact]
         public void Update_WithLanguageSettings_LoadsLanguage()
         {
-            var languageFile = Path.Combine(_testDirectory, "configured.json");
+            var localDir = Path.Combine(_testDirectory, "local");
+            Directory.CreateDirectory(localDir);
+            var languageFile = Path.Combine(localDir, "configured.json");
             File.WriteAllText(languageFile, "{\"MainForm_More\":\"Configured More\"}");
             File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(new Settings { Language = languageFile }));
 
@@ -159,6 +169,13 @@ namespace uploader.Tests
             var json = File.ReadAllText("export.json");
             Assert.Contains("MainForm_More", json);
             Assert.Contains("More", json);
+        }
+
+        [Fact]
+        public void Load_PathTraversal_ThrowsUnauthorizedAccessException()
+        {
+            var languageFile = Path.Combine("local", "..", "secrets.json");
+            Assert.Throws<UnauthorizedAccessException>(() => LocalizationHelper.Load(languageFile));
         }
     }
 }
