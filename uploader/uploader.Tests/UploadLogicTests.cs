@@ -64,6 +64,21 @@ namespace uploader.Tests
         }
 
 
+
+
+        private (UploadLogic, MockUploadCallbacks) SetupLogic(RestClient client = null, string apiKey = null)
+        {
+            var settings = GetSetupSettings();
+            if (apiKey != null)
+            {
+                settings.ApiKey = apiKey;
+                Settings.SaveSettings(settings);
+            }
+            var callbacks = new MockUploadCallbacks();
+            var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks, client);
+            return (logic, callbacks);
+        }
+
         private RestClient CreateMockClient(Func<HttpRequestMessage, HttpResponseMessage> handlerFunc)
         {
             var handler = new MockRestHandler { HandlerFunc = handlerFunc };
@@ -110,9 +125,7 @@ namespace uploader.Tests
         [Fact]
         public async Task UploadAsync_NoApiKey_DisplaysError()
         {
-            var settings = GetSetupSettings();
-            var callbacks = new MockUploadCallbacks();
-            var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks);
+            var (logic, callbacks) = SetupLogic();
 
             await logic.UploadAsync(CancellationToken.None);
 
@@ -122,11 +135,7 @@ namespace uploader.Tests
         [Fact]
         public async Task UploadAsync_InvalidApiKeyLength_DisplaysError()
         {
-            var settings = GetSetupSettings();
-            settings.ApiKey = "short";
-            Settings.SaveSettings(settings);
-            var callbacks = new MockUploadCallbacks();
-            var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks);
+            var (logic, callbacks) = SetupLogic(apiKey: "short");
 
             await logic.UploadAsync(CancellationToken.None);
 
@@ -136,18 +145,12 @@ namespace uploader.Tests
         [Fact]
         public async Task UploadAsync_ValidFile_UploadsAndOpensUrl()
         {
-            var settings = GetSetupSettings();
-            settings.ApiKey = new string('A', 64);
-            Settings.SaveSettings(settings);
-            var callbacks = new MockUploadCallbacks();
-
             var client = CreateMockClient(req =>
             {
                 var content = new StringContent("{\"permalink\": \"https://www.virustotal.com/gui/file/12345\"}");
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
             });
-
-            var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks, client);
+            var (logic, callbacks) = SetupLogic(client, new string('A', 64));
 
             await logic.UploadAsync(CancellationToken.None);
 
@@ -159,11 +162,6 @@ namespace uploader.Tests
         [Fact]
         public async Task UploadAsync_ValidFile_ScanFallback()
         {
-            var settings = GetSetupSettings();
-            settings.ApiKey = new string('A', 64);
-            Settings.SaveSettings(settings);
-            var callbacks = new MockUploadCallbacks();
-
             var client = CreateMockClient(req =>
             {
                 if (req.RequestUri.ToString().Contains("report")) {
@@ -175,7 +173,7 @@ namespace uploader.Tests
                 }
             });
 
-            var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks, client);
+            var (logic, callbacks) = SetupLogic(client, new string('A', 64));
 
             await logic.UploadAsync(CancellationToken.None);
 
