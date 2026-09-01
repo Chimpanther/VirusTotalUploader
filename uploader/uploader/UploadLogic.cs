@@ -18,6 +18,15 @@ namespace uploader
         void OpenUrlSafe(string url);
     }
 
+
+    public class UploadLogicConfig
+    {
+        public Settings Settings { get; set; }
+        public bool IsFolder { get; set; }
+        public string Path { get; set; }
+        public string CachedSha256 { get; set; }
+    }
+
     public class UploadLogic
     {
         private readonly Settings _settings;
@@ -27,12 +36,12 @@ namespace uploader
         private readonly IUploadCallbacks _callbacks;
         private RestClient _client;
 
-        public UploadLogic(Settings settings, bool isFolder, string path, string cachedSha256, IUploadCallbacks callbacks, RestClient client = null)
+        public UploadLogic(UploadLogicConfig config, IUploadCallbacks callbacks, RestClient client = null)
         {
-            _settings = settings;
-            _isFolder = isFolder;
-            _path = path;
-            _cachedSha256 = cachedSha256;
+            _settings = config.Settings;
+            _isFolder = config.IsFolder;
+            _path = config.Path;
+            _cachedSha256 = config.CachedSha256;
             _callbacks = callbacks;
             _client = client ?? new RestClient("https://www.virustotal.com");
         }

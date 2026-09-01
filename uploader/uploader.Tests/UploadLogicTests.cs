@@ -47,6 +47,22 @@ namespace uploader.Tests
         private string _appDataDir;
         private string _settingsPath;
 
+        private Settings GetSetupSettings()
+        {
+            var settings = Settings.LoadSettings();
+            LocalizationHelper.Base = new LocalizationBase();
+            return settings;
+        }
+
+        private void ResetSettingsCache()
+        {
+            var field = typeof(Settings).GetField("_cachedSettings", BindingFlags.Static | BindingFlags.NonPublic);
+            if (field != null)
+            {
+                field.SetValue(null, null);
+            }
+        }
+
         public UploadLogicTests()
         {
             _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -62,11 +78,7 @@ namespace uploader.Tests
                 File.Move(_settingsPath, _settingsPath + ".bak");
             }
 
-            var field = typeof(Settings).GetField("_cachedSettings", BindingFlags.Static | BindingFlags.NonPublic);
-            if (field != null)
-            {
-                field.SetValue(null, null);
-            }
+            ResetSettingsCache();
         }
 
         public void Dispose()
@@ -85,20 +97,15 @@ namespace uploader.Tests
                 File.Move(_settingsPath + ".bak", _settingsPath);
             }
 
-            var field = typeof(Settings).GetField("_cachedSettings", BindingFlags.Static | BindingFlags.NonPublic);
-            if (field != null)
-            {
-                field.SetValue(null, null);
-            }
+            ResetSettingsCache();
         }
 
         [Fact]
         public async Task UploadAsync_NoApiKey_DisplaysError()
         {
-            var settings = Settings.LoadSettings();
-            LocalizationHelper.Base = new LocalizationBase();
+            var settings = GetSetupSettings();
             var callbacks = new MockUploadCallbacks();
-            var logic = new UploadLogic(settings, false, _testFilePath, null, callbacks);
+            var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks);
 
             await logic.UploadAsync(CancellationToken.None);
 
@@ -108,12 +115,11 @@ namespace uploader.Tests
         [Fact]
         public async Task UploadAsync_InvalidApiKeyLength_DisplaysError()
         {
-            var settings = Settings.LoadSettings();
-            LocalizationHelper.Base = new LocalizationBase();
+            var settings = GetSetupSettings();
             settings.ApiKey = "short";
             Settings.SaveSettings(settings);
             var callbacks = new MockUploadCallbacks();
-            var logic = new UploadLogic(settings, false, _testFilePath, null, callbacks);
+            var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks);
 
             await logic.UploadAsync(CancellationToken.None);
 
@@ -123,8 +129,7 @@ namespace uploader.Tests
         [Fact]
         public async Task UploadAsync_ValidFile_UploadsAndOpensUrl()
         {
-            var settings = Settings.LoadSettings();
-            LocalizationHelper.Base = new LocalizationBase();
+            var settings = GetSetupSettings();
             settings.ApiKey = new string('A', 64);
             Settings.SaveSettings(settings);
             var callbacks = new MockUploadCallbacks();
@@ -144,7 +149,7 @@ namespace uploader.Tests
             };
             var client = new RestClient(options);
 
-            var logic = new UploadLogic(settings, false, _testFilePath, null, callbacks, client);
+            var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks, client);
 
             await logic.UploadAsync(CancellationToken.None);
 
@@ -156,8 +161,7 @@ namespace uploader.Tests
         [Fact]
         public async Task UploadAsync_ValidFile_ScanFallback()
         {
-            var settings = Settings.LoadSettings();
-            LocalizationHelper.Base = new LocalizationBase();
+            var settings = GetSetupSettings();
             settings.ApiKey = new string('A', 64);
             Settings.SaveSettings(settings);
             var callbacks = new MockUploadCallbacks();
@@ -182,7 +186,7 @@ namespace uploader.Tests
             };
             var client = new RestClient(options);
 
-            var logic = new UploadLogic(settings, false, _testFilePath, null, callbacks, client);
+            var logic = new UploadLogic(new UploadLogicConfig { Settings = settings, IsFolder = false, Path = _testFilePath }, callbacks, client);
 
             await logic.UploadAsync(CancellationToken.None);
 

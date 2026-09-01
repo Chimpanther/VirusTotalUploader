@@ -91,7 +91,8 @@ namespace uploader
 
         private async Task UploadAsync(CancellationToken token)
         {
-            var logic = new UploadLogic(_settings, _isFolder, _path, _cachedSha256, this);
+            var config = new UploadLogicConfig { Settings = _settings, IsFolder = _isFolder, Path = _path, CachedSha256 = _cachedSha256 };
+            var logic = new UploadLogic(config, this);
             await logic.UploadAsync(token);
         }
 
