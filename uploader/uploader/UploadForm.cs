@@ -123,23 +123,18 @@ namespace uploader
 
             using (var semaphore = new SemaphoreSlim(4))
             {
-                var tasks = new List<Task>();
-                foreach (var file in _filesToUpload)
+                var tasks = _filesToUpload.Select(async file =>
                 {
                     await semaphore.WaitAsync(token);
-                    async Task UploadWithSemaphoreAsync(string f)
+                    try
                     {
-                        try
-                        {
-                            await UploadFileAsync(f, token);
-                        }
-                        finally
-                        {
-                            semaphore.Release();
-                        }
+                        await UploadFileAsync(file, token);
                     }
-                    tasks.Add(UploadWithSemaphoreAsync(file));
-                }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                }).ToList();
 
                 try
                 {
