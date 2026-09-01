@@ -188,7 +188,7 @@ namespace uploader
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _settings.ApiKey);
 
-            string fileSha256 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedSha256)) ? _cachedSha256 : Utils.GetSHA256(fullPath);
+            string fileSha256 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedSha256)) ? _cachedSha256 : await Utils.GetSHA256Async(fullPath, token);
             reportRequest.AddParameter("resource", fileSha256);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
