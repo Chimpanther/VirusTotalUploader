@@ -18,6 +18,11 @@ namespace uploader.Tests
             Assert.Throws<ArgumentNullException>(() => hashFunction(null!));
         }
 
+        private static void AssertThrowsArgumentException(Func<string, string> hashFunction)
+        {
+            Assert.Throws<ArgumentException>(() => hashFunction(""));
+        }
+
         private static void AssertFileHash(Func<string, string> hashFunction, string content, string expectedHash)
         {
             var tempFile = Path.GetTempFileName();
@@ -47,6 +52,12 @@ namespace uploader.Tests
         public void GetSHA256_NullFile_ThrowsArgumentNullException()
         {
             AssertThrowsArgumentNull(Utils.GetSHA256);
+        }
+
+        [Fact]
+        public void GetSHA256_EmptyStringPath_ThrowsArgumentException()
+        {
+            AssertThrowsArgumentException(Utils.GetSHA256);
         }
 
         [Fact]
