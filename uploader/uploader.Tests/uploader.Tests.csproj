@@ -27,10 +27,14 @@
     <Compile Include="..\uploader\Settings.cs" />
     <Compile Include="..\uploader\LocalizationBase.cs" />
     <Compile Include="..\uploader\LocalizationHelper.cs" />
+    <Compile Include="..\uploader\UploadLogic.cs" Link="UploadLogic.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="RestSharp" Version="112.1.0" />
   </ItemGroup>
 
 </Project>
