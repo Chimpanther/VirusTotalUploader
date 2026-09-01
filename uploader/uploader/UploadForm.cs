@@ -103,7 +103,8 @@ namespace uploader
 
             try
             {
-                await client.UploadAsync(_path, _isFolder, _cachedSha256, token);
+                var job = new UploadJob { InitialPath = _path, IsFolder = _isFolder, CachedSha256 = _cachedSha256 };
+                await client.UploadAsync(job, token);
             }
             catch (OperationCanceledException)
             {

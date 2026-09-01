@@ -13,10 +13,13 @@ namespace uploader
                 return;
             }
 
-            if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            bool isHttp = uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
+            if (isHttp)
             {
                 var host = uri.Host.ToLowerInvariant();
-                if (host != "virustotal.com" && host != "www.virustotal.com" && host != "developers.virustotal.com")
+                bool isAllowedHost = host == "virustotal.com" || host == "www.virustotal.com" || host == "developers.virustotal.com";
+
+                if (!isAllowedHost)
                 {
                     System.Diagnostics.Debug.WriteLine($"Blocked attempt to open non-whitelisted URL: {url}");
                     return;

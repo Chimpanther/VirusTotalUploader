@@ -11,7 +11,16 @@ using RestSharp;
 
 namespace uploader
 {
+
+    public class UploadJob
+    {
+        public string InitialPath { get; set; }
+        public bool IsFolder { get; set; }
+        public string CachedSha256 { get; set; }
+    }
+
     public class VirusTotalClient
+
     {
         private readonly string _apiKey;
         private readonly RestClient _client;
@@ -24,28 +33,28 @@ namespace uploader
             _client = new RestClient("https://www.virustotal.com");
         }
 
-        public async Task UploadAsync(string initialPath, bool isFolder, string cachedSha256, CancellationToken token)
+        public async Task UploadAsync(UploadJob job, CancellationToken token)
         {
             IEnumerable<string> filesToUpload;
-            if (isFolder)
+            if (job.IsFolder)
             {
-                filesToUpload = Directory.EnumerateFiles(initialPath, "*.*", SearchOption.AllDirectories);
+                filesToUpload = Directory.EnumerateFiles(job.InitialPath, "*.*", SearchOption.AllDirectories);
             }
             else
             {
-                filesToUpload = new List<string> { initialPath };
+                filesToUpload = new List<string> { job.InitialPath };
             }
 
             var tasks = new List<Task>();
             foreach (var file in filesToUpload)
             {
-                tasks.Add(UploadFileAsync(file, initialPath, isFolder, cachedSha256, token));
+                tasks.Add(UploadFileAsync(file, job, token));
             }
 
             await Task.WhenAll(tasks);
         }
 
-        private async Task UploadFileAsync(string fullPath, string initialPath, bool isFolder, string cachedSha256, CancellationToken token)
+        private async Task UploadFileAsync(string fullPath, UploadJob job, CancellationToken token)
         {
             if (!File.Exists(fullPath))
             {
@@ -60,7 +69,7 @@ namespace uploader
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _apiKey);
 
-            string fileSha256 = (!isFolder && fullPath == initialPath && !string.IsNullOrEmpty(cachedSha256)) ? cachedSha256 : Utils.GetSHA256(fullPath);
+            string fileSha256 = (!job.IsFolder && fullPath == job.InitialPath && !string.IsNullOrEmpty(job.CachedSha256)) ? job.CachedSha256 : Utils.GetSHA256(fullPath);
             reportRequest.AddParameter("resource", fileSha256);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
