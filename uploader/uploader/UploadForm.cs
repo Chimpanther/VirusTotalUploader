@@ -16,6 +16,7 @@ namespace uploader
 {
     public partial class UploadForm : DarkForm
     {
+        private const string VirusTotalUrl = "https://www.virustotal.com";
         private readonly bool _reopen;
         private readonly string _path;
         private readonly MainForm _mainForm;
@@ -110,7 +111,7 @@ namespace uploader
             }
 
             ChangeStatus(LocalizationHelper.Base.Message_Init);
-            _client = new RestClient("https://www.virustotal.com");
+            _client = new RestClient(VirusTotalUrl);
 
             if (_isFolder)
             {
@@ -223,7 +224,7 @@ namespace uploader
                     string sha256 = scanJson.sha256.ToString();
                     string scanId = scanJson.scan_id.ToString();
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                    var scanLink = $"{VirusTotalUrl}/gui/file/{sha256}/detection/{scanId}";
                     OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)
