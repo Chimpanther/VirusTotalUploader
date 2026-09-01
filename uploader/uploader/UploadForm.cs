@@ -185,11 +185,9 @@ namespace uploader
 
             var fileName = Path.GetFileName(fullPath);
             ChangeStatus($"Checking {fileName}...");
-            var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
-            reportRequest.AddParameter("apikey", _settings.ApiKey);
-
             string fileSha256 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedSha256)) ? _cachedSha256 : Utils.GetSHA256(fullPath);
-            reportRequest.AddParameter("resource", fileSha256);
+            var reportRequest = new RestRequest($"api/v3/files/{fileSha256}", Method.Get);
+            reportRequest.AddHeader("x-apikey", _settings.ApiKey);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
             var reportContent = reportResponse.Content;
@@ -198,17 +196,24 @@ namespace uploader
 
             dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
 
-            try
+            if (reportResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                var reportLink = reportJson.permalink.ToString();
-                OpenUrlSafe(reportLink);
+                try
+                {
+                    var reportLink = $"https://www.virustotal.com/gui/file/{reportJson.data.id}";
+                    OpenUrlSafe(reportLink);
+                }
+                catch (Exception ex)
+                {
+                    DisplayError($"Failed to parse report for {fileName}. Error: {ex.Message}");
+                }
             }
-            catch (RuntimeBinderException)
+            else
             {
                 // Json does not contain permalink which means it's a new file (or the request failed)
                 ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
+                var scanRequest = new RestRequest("api/v3/files", Method.Post);
+                scanRequest.AddHeader("x-apikey", _settings.ApiKey);
                 scanRequest.AddFile("file", fullPath);
 
                 var scanResponse = await _client.ExecuteAsync(scanRequest, token);
@@ -220,10 +225,8 @@ namespace uploader
 
                 try
                 {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
-
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                    string id = scanJson.data.id.ToString();
+                    var scanLink = $"https://www.virustotal.com/gui/file-analysis/{id}";
                     OpenUrlSafe(scanLink);
                 }
                 catch (Exception ex)
