@@ -112,7 +112,9 @@ namespace uploader.Tests
         [Fact]
         public void SaveSettings_ValidSettings_WritesFileAndLoadsLocalization()
         {
-            var languageFile = Path.Combine(_testDirectory, "en.json");
+            var localDir = Path.Combine(_testDirectory, "local");
+            Directory.CreateDirectory(localDir);
+            var languageFile = Path.Combine(localDir, "en.json");
             File.WriteAllText(languageFile, JsonConvert.SerializeObject(new LocalizationBase
             {
                 MainForm_More = "Test More"
