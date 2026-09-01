@@ -22,7 +22,7 @@ namespace uploader
 
         public static void Update()
         {
-            var settings = Settings.LoadSettings();
+            var settings = SettingsManager.LoadSettings();
             if (!string.IsNullOrEmpty(settings.Language))
             {
                 Load(settings.Language);

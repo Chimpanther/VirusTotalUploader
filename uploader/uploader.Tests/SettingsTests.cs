@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using Newtonsoft.Json;
 using uploader;
@@ -17,7 +17,7 @@ namespace uploader.Tests
 
         public SettingsTests()
         {
-            _settingsFile = Settings.GetSettingsFilename();
+            _settingsFile = SettingsManager.GetSettingsFilename();
             _settingsExisted = File.Exists(_settingsFile);
             _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
             _localizationBackup = LocalizationHelper.Base;
@@ -26,7 +26,7 @@ namespace uploader.Tests
             Directory.CreateDirectory(_testDirectory);
             Environment.CurrentDirectory = _testDirectory;
 
-            Settings.ClearCache();
+            SettingsManager.ClearCache();
             if (File.Exists(_settingsFile))
             {
                 File.Delete(_settingsFile);
@@ -60,13 +60,13 @@ namespace uploader.Tests
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "vtu_settings.json");
 
-            Assert.Equal(expectedPath, Settings.GetSettingsFilename());
+            Assert.Equal(expectedPath, SettingsManager.GetSettingsFilename());
         }
 
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefault()
         {
-            var settings = Settings.LoadSettings();
+            var settings = SettingsManager.LoadSettings();
 
             Assert.NotNull(settings);
             Assert.Equal("", settings.ApiKey);
@@ -106,7 +106,7 @@ namespace uploader.Tests
 
             File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(expected));
 
-            return Settings.LoadSettings();
+            return SettingsManager.LoadSettings();
         }
 
         [Fact]
@@ -124,7 +124,7 @@ namespace uploader.Tests
                 DirectUpload = true
             };
 
-            Settings.SaveSettings(settings);
+            SettingsManager.SaveSettings(settings);
 
             Assert.True(File.Exists(_settingsFile));
             var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(_settingsFile));
@@ -146,7 +146,7 @@ namespace uploader.Tests
                 DirectUpload = true
             };
 
-            Settings.SaveSettings(settings);
+            SettingsManager.SaveSettings(settings);
 
             Assert.Equal("", settings.Language);
             var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(_settingsFile));

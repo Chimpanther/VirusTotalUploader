@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using Newtonsoft.Json;
 using uploader;
@@ -21,8 +21,8 @@ namespace uploader.Tests
             Directory.CreateDirectory(_testDirectory);
             Environment.CurrentDirectory = _testDirectory;
 
-            Settings.ClearCache();
-            _settingsFile = Settings.GetSettingsFilename();
+            SettingsManager.ClearCache();
+            _settingsFile = SettingsManager.GetSettingsFilename();
             _settingsExisted = File.Exists(_settingsFile);
             _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
             LocalizationHelper.Base = null!;

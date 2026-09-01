@@ -19,7 +19,7 @@ namespace uploader
 
         private void SettingsForm_Load(object sender, EventArgs e)
         {
-            var settings = Settings.LoadSettings();
+            var settings = SettingsManager.LoadSettings();
 
             apiTextbox.Text = settings.ApiKey;
             directCheckbox.Checked = settings.DirectUpload;
@@ -54,7 +54,7 @@ namespace uploader
 
         private void darkButton1_Click(object sender, EventArgs e)
         {
-            var file = Settings.GetSettingsFilename();
+            var file = SettingsManager.GetSettingsFilename();
             if (!File.Exists(file))
             {
                 statusLabel.Text = LocalizationHelper.Base.Message_NoSettings;
@@ -79,7 +79,7 @@ namespace uploader
                 DirectUpload = directCheckbox.Checked
             };
 
-            Settings.SaveSettings(settings);
+            SettingsManager.SaveSettings(settings);
             using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.Message_Saved, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();

@@ -21,9 +21,7 @@ namespace uploader
         private readonly MainForm _mainForm;
         private readonly Settings _settings;
         private CancellationTokenSource _cancellationTokenSource;
-        private RestClient _client;
         private bool _isFolder;
-        private IEnumerable<string> _filesToUpload;
         private string _cachedSha256;
 
         public UploadForm(MainForm mainForm, Settings settings, bool reopen, string path)
@@ -39,97 +37,73 @@ namespace uploader
 
         private void ChangeStatus(string text)
         {
-            if (InvokeRequired)
-            {
-                this.Invoke(new Action(() => ChangeStatus(text)));
-                return;
-            }
-
-            statusLabel.Text = text;
+            this.InvokeIfRequired(() => statusLabel.Text = text);
         }
 
         private void Finish(bool resetText)
         {
-            if (InvokeRequired)
+            this.InvokeIfRequired(() =>
             {
-                this.Invoke(new Action(() => Finish(resetText)));
-                return;
-            }
+                if (resetText)
+                {
+                    ChangeStatus(LocalizationHelper.Base.Message_Idle);
+                }
 
-            if (resetText)
-            {
-                ChangeStatus(LocalizationHelper.Base.Message_Idle);
-            }
-
-            uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
+                uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
+            });
         }
 
         private void CloseWindow()
         {
-            if (InvokeRequired)
-            {
-                this.Invoke(new Action(() => CloseWindow()));
-                return;
-            }
-
-            this.Close();
+            this.InvokeIfRequired(() => this.Close());
         }
 
         private void DisplayError(string error)
         {
-            if (InvokeRequired)
+            this.InvokeIfRequired(() =>
             {
-                this.Invoke(new Action(() => DisplayError(error)));
-                return;
-            }
-
-            using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-            {
-                messageBox.ShowDialog();
-            }
+                using (var messageBox = new DarkMessageBox(error, LocalizationHelper.Base.UploadForm_Error, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
+            });
         }
 
         private async Task UploadAsync(CancellationToken token)
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                this.InvokeIfRequired(() =>
                 {
-                    messageBox.ShowDialog();
-                }
+                    using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                    {
+                        messageBox.ShowDialog();
+                    }
+                });
                 return;
             }
 
             if (_settings.ApiKey.Length != 64)
             {
-                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                this.InvokeIfRequired(() =>
                 {
-                    messageBox.ShowDialog();
-                }
+                    using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                    {
+                        messageBox.ShowDialog();
+                    }
+                });
                 return;
             }
 
             ChangeStatus(LocalizationHelper.Base.Message_Init);
-            _client = new RestClient("https://www.virustotal.com");
 
-            if (_isFolder)
-            {
-                _filesToUpload = Directory.EnumerateFiles(_path, "*.*", SearchOption.AllDirectories);
-            }
-            else
-            {
-                _filesToUpload = new List<string> { _path };
-            }
-
-            var tasks = new List<Task>();
-            foreach (var file in _filesToUpload)
-            {
-                tasks.Add(UploadFileAsync(file, token));
-            }
+            var client = new VirusTotalClient(_settings.ApiKey);
+            client.OnStatusChanged = ChangeStatus;
+            client.OnError = DisplayError;
 
             try
             {
-                await Task.WhenAll(tasks);
+                await client.UploadAsync(_path, _isFolder, _cachedSha256, token);
             }
             catch (OperationCanceledException)
             {
@@ -139,101 +113,7 @@ namespace uploader
             Finish(true);
         }
 
-        private void OpenUrlSafe(string url)
-        {
-            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
-            {
-                return;
-            }
-
-            if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-            {
-                var host = uri.Host.ToLowerInvariant();
-                if (host != "virustotal.com" && host != "www.virustotal.com")
-                {
-                    Debug.WriteLine($"Blocked attempt to open non-whitelisted URL: {url}");
-                    return;
-                }
-
-                try
-                {
-                    var psi = new ProcessStartInfo
-                    {
-                        FileName = uri.AbsoluteUri,
-                        UseShellExecute = true
-                    };
-                    Process.Start(psi);
-                }
-                catch (Exception ex)
-                {
-                    // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
-                    // Silently ignoring is safer than crashing the background thread.
-                    Debug.WriteLine($"Failed to open URL: {ex.Message}");
-                }
-            }
-        }
-
-        private async Task UploadFileAsync(string fullPath, CancellationToken token)
-        {
-            if (!File.Exists(fullPath))
-            {
-                DisplayError($"File {fullPath} does not exist.");
-                return;
-            }
-
-            token.ThrowIfCancellationRequested();
-
-            var fileName = Path.GetFileName(fullPath);
-            ChangeStatus($"Checking {fileName}...");
-            var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
-            reportRequest.AddParameter("apikey", _settings.ApiKey);
-
-            string fileSha256 = (!_isFolder && fullPath == _path && !string.IsNullOrEmpty(_cachedSha256)) ? _cachedSha256 : Utils.GetSHA256(fullPath);
-            reportRequest.AddParameter("resource", fileSha256);
-
-            var reportResponse = await _client.ExecuteAsync(reportRequest, token);
-            var reportContent = reportResponse.Content;
-
-            token.ThrowIfCancellationRequested();
-
-            dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
-
-            try
-            {
-                var reportLink = reportJson.permalink.ToString();
-                OpenUrlSafe(reportLink);
-            }
-            catch (RuntimeBinderException)
-            {
-                // Json does not contain permalink which means it's a new file (or the request failed)
-                ChangeStatus($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _settings.ApiKey);
-                scanRequest.AddFile("file", fullPath);
-
-                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
-                var scanContent = scanResponse.Content;
-
-                token.ThrowIfCancellationRequested();
-
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
-
-                try
-                {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
-
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    OpenUrlSafe(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    DisplayError($"Failed to get link for {fileName}. Error: {ex.Message}");
-                }
-            }
-        }
-
-        private void StartUploadThread()
+private void StartUploadThread()
         {
             if (_cancellationTokenSource != null)
             {
