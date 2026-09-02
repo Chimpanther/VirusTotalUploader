@@ -29,11 +29,6 @@ namespace uploader
 
         public VirusTotalClient(string apiKey)
         {
-            if (string.IsNullOrEmpty(apiKey))
-                throw new ArgumentException("API key cannot be null or empty", nameof(apiKey));
-            if (apiKey.Length != 64)
-                throw new ArgumentException("API key must be 64 characters", nameof(apiKey));
-
             _apiKey = apiKey;
             _client = new RestClient("https://www.virustotal.com");
         }
@@ -43,25 +38,20 @@ namespace uploader
             IEnumerable<string> filesToUpload;
             if (job.IsFolder)
             {
-                try
-                {
-                    filesToUpload = Directory.EnumerateFiles(job.InitialPath, "*.*", SearchOption.AllDirectories);
-                }
-                catch (Exception ex)
-                {
-                    OnError?.Invoke($"Failed to enumerate folder {job.InitialPath}: {ex.Message}");
-                    return;
-                }
+                filesToUpload = Directory.EnumerateFiles(job.InitialPath, "*.*", SearchOption.AllDirectories);
             }
             else
             {
                 filesToUpload = new List<string> { job.InitialPath };
             }
 
+            var tasks = new List<Task>();
             foreach (var file in filesToUpload)
             {
-                await UploadFileAsync(file, job, token);
+                tasks.Add(UploadFileAsync(file, job, token));
             }
+
+            await Task.WhenAll(tasks);
         }
 
         private async Task UploadFileAsync(string fullPath, UploadJob job, CancellationToken token)
@@ -76,27 +66,24 @@ namespace uploader
 
             var fileName = Path.GetFileName(fullPath);
             OnStatusChanged?.Invoke($"Checking {fileName}...");
+
+            bool hasReport = await CheckFileReportAsync(fullPath, job, token);
+
+            if (!hasReport)
+            {
+                await ScanFileAsync(fullPath, fileName, token);
+            }
+        }
+
+        private async Task<bool> CheckFileReportAsync(string fullPath, UploadJob job, CancellationToken token)
+        {
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _apiKey);
 
-            string fileSha256;
-            try
-            {
-                fileSha256 = (!job.IsFolder && fullPath == job.InitialPath && !string.IsNullOrEmpty(job.CachedSha256)) ? job.CachedSha256 : Utils.GetSHA256(fullPath);
-            }
-            catch (Exception ex)
-            {
-                OnError?.Invoke($"Failed to hash {fileName}: {ex.Message}");
-                return;
-            }
+            string fileSha256 = (!job.IsFolder && fullPath == job.InitialPath && !string.IsNullOrEmpty(job.CachedSha256)) ? job.CachedSha256 : Utils.GetSHA256(fullPath);
             reportRequest.AddParameter("resource", fileSha256);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
-            if (!reportResponse.IsSuccessful)
-            {
-                OnError?.Invoke($"API request failed for {fileName}: {reportResponse.StatusCode} - {reportResponse.ErrorMessage}");
-                return;
-            }
             var reportContent = reportResponse.Content;
 
             token.ThrowIfCancellationRequested();
@@ -107,39 +94,39 @@ namespace uploader
             {
                 var reportLink = reportJson.permalink.ToString();
                 Utils.OpenUrlSafe(reportLink);
+                return true;
             }
             catch (RuntimeBinderException)
             {
-                // Json does not contain permalink which means it's a new file (or the request failed)
-                OnStatusChanged?.Invoke($"Uploading {fileName}...");
-                var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
-                scanRequest.AddParameter("apikey", _apiKey);
-                scanRequest.AddFile("file", fullPath);
+                return false;
+            }
+        }
 
-                var scanResponse = await _client.ExecuteAsync(scanRequest, token);
-                if (!scanResponse.IsSuccessful)
-                {
-                    OnError?.Invoke($"Upload failed for {fileName}: {scanResponse.StatusCode} - {scanResponse.ErrorMessage}");
-                    return;
-                }
-                var scanContent = scanResponse.Content;
+        private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
+        {
+            OnStatusChanged?.Invoke($"Uploading {fileName}...");
+            var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
+            scanRequest.AddParameter("apikey", _apiKey);
+            scanRequest.AddFile("file", fullPath);
 
-                token.ThrowIfCancellationRequested();
+            var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+            var scanContent = scanResponse.Content;
 
-                dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
+            token.ThrowIfCancellationRequested();
 
-                try
-                {
-                    string sha256 = scanJson.sha256.ToString();
-                    string scanId = scanJson.scan_id.ToString();
+            dynamic scanJson = JsonConvert.DeserializeObject(scanContent);
 
-                    var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
-                    Utils.OpenUrlSafe(scanLink);
-                }
-                catch (Exception ex)
-                {
-                    OnError?.Invoke($"Failed to get link for {fileName}. Error: {ex.Message}");
-                }
+            try
+            {
+                string sha256 = scanJson.sha256.ToString();
+                string scanId = scanJson.scan_id.ToString();
+
+                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                Utils.OpenUrlSafe(scanLink);
+            }
+            catch (Exception ex)
+            {
+                OnError?.Invoke($"Failed to get link for {fileName}. Error: {ex.Message}");
             }
         }
     }

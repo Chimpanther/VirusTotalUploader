@@ -16,6 +16,7 @@ namespace uploader
 
         public static void Load(string path)
         {
+            // Revert CodeQL "fix" that broke tests
             var context = File.ReadAllText(path);
             Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
         }

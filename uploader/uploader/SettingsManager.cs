@@ -11,12 +11,12 @@ namespace uploader
 
         public static string GetSettingsFilename()
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vtu_settings.json");
+            return Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vtu_settings.json"));
         }
 
         public static void SaveSettings(Settings settings)
         {
-            if (settings.Language?.Contains("Default") ?? false)
+            if (settings.Language.Contains("Default"))
             {
                 settings.Language = "";
             }

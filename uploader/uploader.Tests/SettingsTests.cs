@@ -17,7 +17,7 @@ namespace uploader.Tests
 
         public SettingsTests()
         {
-            _settingsFile = SettingsManager.GetSettingsFilename();
+            _settingsFile = Path.GetFullPath(SettingsManager.GetSettingsFilename());
             _settingsExisted = File.Exists(_settingsFile);
             _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
             _localizationBackup = LocalizationHelper.Base;
