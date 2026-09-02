@@ -16,7 +16,11 @@ namespace uploader
 
         public static void Load(string path)
         {
-            if (path.Contains("..") || path.Contains("/") || path.Contains("\\"))
+            var fileName = Path.GetFileName(path);
+            var safePath = Path.Combine(LocalFolder, fileName);
+
+            bool isSimpleFilename = fileName == path;
+            if (!isSimpleFilename)
             {
                 var fullPath = Path.GetFullPath(path);
                 var fullLocalFolder = Path.GetFullPath(LocalFolder);
@@ -24,22 +28,17 @@ namespace uploader
 
                 bool isOutsideLocalFolder = !fullPath.StartsWith(fullLocalFolder);
                 bool isOutsideTempPath = !fullPath.StartsWith(fullTempPath);
-                bool isInvalidPath = isOutsideLocalFolder && isOutsideTempPath;
 
-                if (isInvalidPath)
+                if (isOutsideLocalFolder && isOutsideTempPath)
                 {
                     throw new ArgumentException("Invalid path");
                 }
 
-                var context = File.ReadAllText(fullPath);
-                Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
+                safePath = fullPath;
             }
-            else
-            {
-                var safePath = Path.Combine(LocalFolder, path);
-                var context = File.ReadAllText(safePath);
-                Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
-            }
+
+            var context = File.ReadAllText(safePath);
+            Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
         }
 
         public static void Update()
