@@ -22,9 +22,9 @@ namespace uploader.Tests
             Environment.CurrentDirectory = _testDirectory;
 
             SettingsManager.ClearCache();
-            _settingsFile = SettingsManager.GetSettingsFilename();
-            _settingsExisted = File.Exists(_settingsFile);
-            _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
+            _settingsFile = Path.GetFullPath(SettingsManager.GetSettingsFilename());
+            _settingsExisted = File.Exists(Path.GetFullPath(_settingsFile));
+            _settingsBackup = _settingsExisted ? File.ReadAllText(Path.GetFullPath(_settingsFile)) : string.Empty;
             LocalizationHelper.Base = null!;
         }
 
@@ -34,11 +34,11 @@ namespace uploader.Tests
 
             if (_settingsExisted)
             {
-                File.WriteAllText(_settingsFile, _settingsBackup);
+                File.WriteAllText(Path.GetFullPath(_settingsFile), _settingsBackup);
             }
-            else if (File.Exists(_settingsFile))
+            else if (File.Exists(Path.GetFullPath(_settingsFile)))
             {
-                File.Delete(_settingsFile);
+                File.Delete(Path.GetFullPath(_settingsFile));
             }
 
             LocalizationHelper.Base = null!;
@@ -131,7 +131,7 @@ namespace uploader.Tests
         {
             var languageFile = Path.Combine(_testDirectory, "configured.json");
             File.WriteAllText(languageFile, "{\"MainForm_More\":\"Configured More\"}");
-            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(new Settings { Language = languageFile }));
+            File.WriteAllText(Path.GetFullPath(_settingsFile), JsonConvert.SerializeObject(new Settings { Language = languageFile }));
 
             LocalizationHelper.Update();
 
@@ -142,7 +142,7 @@ namespace uploader.Tests
         [Fact]
         public void Update_WithoutLanguageSettings_UsesDefaultBase()
         {
-            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(new Settings()));
+            File.WriteAllText(Path.GetFullPath(_settingsFile), JsonConvert.SerializeObject(new Settings()));
 
             LocalizationHelper.Update();
 

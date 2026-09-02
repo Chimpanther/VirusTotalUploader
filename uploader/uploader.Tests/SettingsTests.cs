@@ -17,9 +17,9 @@ namespace uploader.Tests
 
         public SettingsTests()
         {
-            _settingsFile = Path.GetFullPath(SettingsManager.GetSettingsFilename());
-            _settingsExisted = File.Exists(_settingsFile);
-            _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
+            _settingsFile = Path.GetFullPath(Path.GetFullPath(SettingsManager.GetSettingsFilename()));
+            _settingsExisted = File.Exists(Path.GetFullPath(_settingsFile));
+            _settingsBackup = _settingsExisted ? File.ReadAllText(Path.GetFullPath(_settingsFile)) : string.Empty;
             _localizationBackup = LocalizationHelper.Base;
             _originalCurrentDirectory = Environment.CurrentDirectory;
             _testDirectory = Path.Combine(Path.GetTempPath(), "vtu-settings-" + Guid.NewGuid());
@@ -27,9 +27,9 @@ namespace uploader.Tests
             Environment.CurrentDirectory = _testDirectory;
 
             SettingsManager.ClearCache();
-            if (File.Exists(_settingsFile))
+            if (File.Exists(Path.GetFullPath(_settingsFile)))
             {
-                File.Delete(_settingsFile);
+                File.Delete(Path.GetFullPath(_settingsFile));
             }
         }
 
@@ -39,11 +39,11 @@ namespace uploader.Tests
 
             if (_settingsExisted)
             {
-                File.WriteAllText(_settingsFile, _settingsBackup);
+                File.WriteAllText(Path.GetFullPath(_settingsFile), _settingsBackup);
             }
-            else if (File.Exists(_settingsFile))
+            else if (File.Exists(Path.GetFullPath(_settingsFile)))
             {
-                File.Delete(_settingsFile);
+                File.Delete(Path.GetFullPath(_settingsFile));
             }
 
             LocalizationHelper.Base = _localizationBackup;
@@ -60,7 +60,7 @@ namespace uploader.Tests
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "vtu_settings.json");
 
-            Assert.Equal(expectedPath, SettingsManager.GetSettingsFilename());
+            Assert.Equal(expectedPath, Path.GetFullPath(SettingsManager.GetSettingsFilename()));
         }
 
         [Fact]
@@ -104,7 +104,7 @@ namespace uploader.Tests
                 DirectUpload = true
             };
 
-            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(expected));
+            File.WriteAllText(Path.GetFullPath(_settingsFile), JsonConvert.SerializeObject(expected));
 
             return SettingsManager.LoadSettings();
         }
@@ -126,8 +126,8 @@ namespace uploader.Tests
 
             SettingsManager.SaveSettings(settings);
 
-            Assert.True(File.Exists(_settingsFile));
-            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(_settingsFile));
+            Assert.True(File.Exists(Path.GetFullPath(_settingsFile)));
+            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(Path.GetFullPath(_settingsFile)));
             Assert.NotNull(persisted);
             Assert.Equal("test-api-key", persisted.ApiKey);
             Assert.Equal(languageFile, persisted.Language);
@@ -149,7 +149,7 @@ namespace uploader.Tests
             SettingsManager.SaveSettings(settings);
 
             Assert.Equal("", settings.Language);
-            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(_settingsFile));
+            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(Path.GetFullPath(_settingsFile)));
             Assert.NotNull(persisted);
             Assert.Equal("", persisted.Language);
             Assert.Equal("test-api-key", persisted.ApiKey);

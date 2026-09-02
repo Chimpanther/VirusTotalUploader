@@ -16,8 +16,12 @@ namespace uploader
 
         public static void Load(string path)
         {
-            // Revert CodeQL "fix" that broke tests
-            var context = File.ReadAllText(path);
+            var fileName = Path.GetFileName(path);
+            var safePath = Path.Combine(LocalFolder, fileName);
+            if (!File.Exists(safePath)) {
+                safePath = path;
+            }
+            var context = File.ReadAllText(safePath);
             Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
         }
 
