@@ -29,6 +29,11 @@ namespace uploader
 
         public VirusTotalClient(string apiKey)
         {
+            if (string.IsNullOrEmpty(apiKey))
+                throw new ArgumentException("API key cannot be null or empty", nameof(apiKey));
+            if (apiKey.Length != 64)
+                throw new ArgumentException("API key must be 64 characters", nameof(apiKey));
+
             _apiKey = apiKey;
             _client = new RestClient("https://www.virustotal.com");
         }
@@ -38,20 +43,25 @@ namespace uploader
             IEnumerable<string> filesToUpload;
             if (job.IsFolder)
             {
-                filesToUpload = Directory.EnumerateFiles(job.InitialPath, "*.*", SearchOption.AllDirectories);
+                try
+                {
+                    filesToUpload = Directory.EnumerateFiles(job.InitialPath, "*.*", SearchOption.AllDirectories);
+                }
+                catch (Exception ex)
+                {
+                    OnError?.Invoke($"Failed to enumerate folder {job.InitialPath}: {ex.Message}");
+                    return;
+                }
             }
             else
             {
                 filesToUpload = new List<string> { job.InitialPath };
             }
 
-            var tasks = new List<Task>();
             foreach (var file in filesToUpload)
             {
-                tasks.Add(UploadFileAsync(file, job, token));
+                await UploadFileAsync(file, job, token);
             }
-
-            await Task.WhenAll(tasks);
         }
 
         private async Task UploadFileAsync(string fullPath, UploadJob job, CancellationToken token)
@@ -69,10 +79,24 @@ namespace uploader
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _apiKey);
 
-            string fileSha256 = (!job.IsFolder && fullPath == job.InitialPath && !string.IsNullOrEmpty(job.CachedSha256)) ? job.CachedSha256 : Utils.GetSHA256(fullPath);
+            string fileSha256;
+            try
+            {
+                fileSha256 = (!job.IsFolder && fullPath == job.InitialPath && !string.IsNullOrEmpty(job.CachedSha256)) ? job.CachedSha256 : Utils.GetSHA256(fullPath);
+            }
+            catch (Exception ex)
+            {
+                OnError?.Invoke($"Failed to hash {fileName}: {ex.Message}");
+                return;
+            }
             reportRequest.AddParameter("resource", fileSha256);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);
+            if (!reportResponse.IsSuccessful)
+            {
+                OnError?.Invoke($"API request failed for {fileName}: {reportResponse.StatusCode} - {reportResponse.ErrorMessage}");
+                return;
+            }
             var reportContent = reportResponse.Content;
 
             token.ThrowIfCancellationRequested();
@@ -93,6 +117,11 @@ namespace uploader
                 scanRequest.AddFile("file", fullPath);
 
                 var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+                if (!scanResponse.IsSuccessful)
+                {
+                    OnError?.Invoke($"Upload failed for {fileName}: {scanResponse.StatusCode} - {scanResponse.ErrorMessage}");
+                    return;
+                }
                 var scanContent = scanResponse.Content;
 
                 token.ThrowIfCancellationRequested();

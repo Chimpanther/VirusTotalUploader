@@ -16,7 +16,7 @@ namespace uploader
 
         public static void SaveSettings(Settings settings)
         {
-            if (settings.Language.Contains("Default"))
+            if (settings.Language?.Contains("Default") ?? false)
             {
                 settings.Language = "";
             }

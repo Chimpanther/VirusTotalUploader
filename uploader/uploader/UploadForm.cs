@@ -114,7 +114,7 @@ namespace uploader
             Finish(true);
         }
 
-private void StartUploadThread()
+        private void StartUploadThread()
         {
             if (_cancellationTokenSource != null)
             {
