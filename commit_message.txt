@@ -1,6 +1,4 @@
-🧹 Remove dead commented code in SettingsForm.cs
+docs: comprehensive documentation refresh
 
-🎯 **What:** Removed commented-out `LocalizationHelper.Export();` code in `SettingsForm.cs`.
-💡 **Why:** Dead commented-out code clutters the codebase and reduces readability and maintainability. Removing it simplifies the file.
-✅ **Verification:** Verified by checking that tests still compile and run, with no change in functionality.
-✨ **Result:** A cleaner codebase.
+- Rewrite README.md to accurately document capabilities, CLI usage, configuration, build prerequisites (.NET 4.8), and architecture components.
+- Remove stale references to non-existent MD5/SHA1 hashing features from README.md and AGENTS.md, as only SHA256 is supported in the current codebase.
