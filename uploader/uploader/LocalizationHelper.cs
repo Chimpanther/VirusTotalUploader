@@ -16,13 +16,26 @@ namespace uploader
 
         public static void Load(string path)
         {
-            var fileName = Path.GetFileName(path);
-            var safePath = Path.Combine(LocalFolder, fileName);
-            if (!File.Exists(safePath)) {
-                safePath = path;
+            if (path.Contains("..") || path.Contains("/") || path.Contains("\\"))
+            {
+                var fullPath = Path.GetFullPath(path);
+                var fullLocalFolder = Path.GetFullPath(LocalFolder);
+                var fullTempPath = Path.GetTempPath();
+
+                if (!fullPath.StartsWith(fullLocalFolder) && !fullPath.StartsWith(fullTempPath))
+                {
+                    throw new ArgumentException("Invalid path");
+                }
+
+                var context = File.ReadAllText(fullPath);
+                Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
             }
-            var context = File.ReadAllText(safePath);
-            Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
+            else
+            {
+                var safePath = Path.Combine(LocalFolder, path);
+                var context = File.ReadAllText(safePath);
+                Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
+            }
         }
 
         public static void Update()
