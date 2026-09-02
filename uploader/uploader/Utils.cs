@@ -1,11 +1,48 @@
-﻿using System;
+using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
 namespace uploader
 {
     public static class Utils
     {
+        public static string RequireRooted(string path)
+        {
+            if (path == null)
+                throw new ArgumentNullException(nameof(path));
+
+            var fullPath = Path.GetFullPath(path);
+            if (!Path.IsPathRooted(fullPath))
+                throw new ArgumentException("Path must be rooted", nameof(path));
+
+            return fullPath;
+        }
+
+        public static void RevealInExplorer(string path)
+        {
+            var file = RequireRooted(path);
+            var pidl = ILCreateFromPathW(file);
+            if (pidl == IntPtr.Zero)
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    UseShellExecute = true
+                });
+                return;
+            }
+
+            try
+            {
+                SHOpenFolderAndSelectItems(pidl, 0, IntPtr.Zero, 0);
+            }
+            finally
+            {
+                ILFree(pidl);
+            }
+        }
+
         public static void OpenUrlSafe(string url)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
@@ -52,5 +89,14 @@ namespace uploader
                 return BitConverter.ToString(checksum).Replace("-", string.Empty);
             }
         }
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr ILCreateFromPathW(string pszPath);
+
+        [DllImport("shell32.dll")]
+        private static extern int SHOpenFolderAndSelectItems(IntPtr pidlFolder, uint cidl, IntPtr apidl, uint dwFlags);
+
+        [DllImport("shell32.dll")]
+        private static extern void ILFree(IntPtr pidl);
     }
 }

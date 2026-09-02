@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Newtonsoft.Json;
 
@@ -11,7 +11,8 @@ namespace uploader
 
         public static string GetSettingsFilename()
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vtu_settings.json");
+            var combined = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vtu_settings.json");
+            return Utils.RequireRooted(combined);
         }
 
         public static void SaveSettings(Settings settings)
@@ -22,7 +23,9 @@ namespace uploader
             }
 
             var serialized = JsonConvert.SerializeObject(settings);
-            var file = GetSettingsFilename();
+            var file = Utils.RequireRooted(GetSettingsFilename());
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
 
             if (File.Exists(file))
                 File.Delete(file);
@@ -46,7 +49,9 @@ namespace uploader
                     return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
                 }
 
-                var file = GetSettingsFilename();
+                var file = Utils.RequireRooted(GetSettingsFilename());
+                if (!Path.IsPathRooted(file))
+                    throw new InvalidOperationException("Settings path must be rooted");
 
                 if (!File.Exists(file))
                 {

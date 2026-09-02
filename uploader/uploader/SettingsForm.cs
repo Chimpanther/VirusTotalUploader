@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -54,18 +54,16 @@ namespace uploader
 
         private void darkButton1_Click(object sender, EventArgs e)
         {
-            var file = SettingsManager.GetSettingsFilename();
+            var file = Utils.RequireRooted(SettingsManager.GetSettingsFilename());
+            if (!Path.IsPathRooted(file))
+                return;
             if (!File.Exists(file))
             {
                 statusLabel.Text = LocalizationHelper.Base.Message_NoSettings;
                 return;
             }
 
-            var safePath = file.Replace("\"", "\\\"");
-            var args = $"/e, /select, \"{safePath}\"";
-
-            var info = new ProcessStartInfo {FileName = "explorer.exe", Arguments = args, UseShellExecute = false};
-            Process.Start(info);
+            Utils.RevealInExplorer(file);
         }
 
         private void saveButton_Click(object sender, EventArgs e)
