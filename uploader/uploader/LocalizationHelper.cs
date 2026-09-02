@@ -22,7 +22,11 @@ namespace uploader
                 var fullLocalFolder = Path.GetFullPath(LocalFolder);
                 var fullTempPath = Path.GetTempPath();
 
-                if (!fullPath.StartsWith(fullLocalFolder) && !fullPath.StartsWith(fullTempPath))
+                bool isOutsideLocalFolder = !fullPath.StartsWith(fullLocalFolder);
+                bool isOutsideTempPath = !fullPath.StartsWith(fullTempPath);
+                bool isInvalidPath = isOutsideLocalFolder && isOutsideTempPath;
+
+                if (isInvalidPath)
                 {
                     throw new ArgumentException("Invalid path");
                 }
