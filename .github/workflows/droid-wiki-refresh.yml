@@ -4,15 +4,13 @@ on:
   push:
     branches: [master]
 
-permissions:
-  contents: read
-
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   wiki-refresh:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
