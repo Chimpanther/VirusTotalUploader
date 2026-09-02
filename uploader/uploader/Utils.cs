@@ -13,7 +13,7 @@ namespace uploader
                 throw new ArgumentNullException(nameof(path));
 
             var fullPath = Path.GetFullPath(path);
-            if (!Path.IsPathRooted(fullPath))
+            if (!Path.IsPathRooted(path))
                 throw new ArgumentException("Path must be rooted", nameof(path));
 
             return fullPath;
