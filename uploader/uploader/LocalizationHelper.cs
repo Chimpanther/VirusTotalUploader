@@ -16,29 +16,38 @@ namespace uploader
 
         public static void Load(string path)
         {
-            var fileName = Path.GetFileName(path);
-            var safePath = Path.Combine(LocalFolder, fileName);
-
-            bool isSimpleFilename = fileName == path;
-            if (!isSimpleFilename)
+            try
             {
-                var fullPath = Path.GetFullPath(path);
+                var fileName = Path.GetFileName(path);
                 var fullLocalFolder = Path.GetFullPath(LocalFolder);
                 var fullTempPath = Path.GetTempPath();
 
-                bool isOutsideLocalFolder = !fullPath.StartsWith(fullLocalFolder);
-                bool isOutsideTempPath = !fullPath.StartsWith(fullTempPath);
-
-                if (isOutsideLocalFolder && isOutsideTempPath)
+                bool isSimpleFilename = string.Equals(fileName, path, StringComparison.Ordinal);
+                if (!isSimpleFilename)
                 {
-                    throw new ArgumentException("Invalid path");
+                    var fullPath = Path.GetFullPath(path);
+
+                    bool isOutsideLocalFolder = !fullPath.StartsWith(fullLocalFolder);
+                    bool isOutsideTempPath = !fullPath.StartsWith(fullTempPath);
+
+                    if (isOutsideLocalFolder && isOutsideTempPath)
+                    {
+                        throw new ArgumentException("Invalid path");
+                    }
                 }
 
-                safePath = fullPath;
+                var resolvedPath = Path.GetFullPath(Path.Combine(fullLocalFolder, fileName));
+                var context = File.ReadAllText(resolvedPath);
+                Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
             }
-
-            var context = File.ReadAllText(safePath);
-            Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
+            catch (ArgumentException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException("Invalid localization path", ex);
+            }
         }
 
         public static void Update()
