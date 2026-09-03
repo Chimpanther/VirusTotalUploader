@@ -21,8 +21,11 @@ namespace uploader.Tests
             Directory.CreateDirectory(_testDirectory);
             Environment.CurrentDirectory = _testDirectory;
 
-            Settings.ClearCache();
-            _settingsFile = Settings.GetSettingsFilename();
+            SettingsManager.ClearCache();
+            var file = Utils.RequireRooted(SettingsManager.GetSettingsFilename());
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
+            _settingsFile = file;
             _settingsExisted = File.Exists(_settingsFile);
             _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
             LocalizationHelper.Base = null!;
@@ -32,13 +35,17 @@ namespace uploader.Tests
         {
             Environment.CurrentDirectory = _originalCurrentDirectory;
 
+            var file = Utils.RequireRooted(_settingsFile);
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
+
             if (_settingsExisted)
             {
-                File.WriteAllText(_settingsFile, _settingsBackup);
+                File.WriteAllText(file, _settingsBackup);
             }
-            else if (File.Exists(_settingsFile))
+            else if (File.Exists(file))
             {
-                File.Delete(_settingsFile);
+                File.Delete(file);
             }
 
             LocalizationHelper.Base = null!;
@@ -131,7 +138,10 @@ namespace uploader.Tests
         {
             var languageFile = Path.Combine(_testDirectory, "configured.json");
             File.WriteAllText(languageFile, "{\"MainForm_More\":\"Configured More\"}");
-            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(new Settings { Language = languageFile }));
+            var file = Utils.RequireRooted(_settingsFile);
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
+            File.WriteAllText(file, JsonConvert.SerializeObject(new Settings { Language = languageFile }));
 
             LocalizationHelper.Update();
 
@@ -142,7 +152,10 @@ namespace uploader.Tests
         [Fact]
         public void Update_WithoutLanguageSettings_UsesDefaultBase()
         {
-            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(new Settings()));
+            var file = Utils.RequireRooted(_settingsFile);
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
+            File.WriteAllText(file, JsonConvert.SerializeObject(new Settings()));
 
             LocalizationHelper.Update();
 

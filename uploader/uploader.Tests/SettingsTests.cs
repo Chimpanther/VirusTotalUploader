@@ -17,7 +17,10 @@ namespace uploader.Tests
 
         public SettingsTests()
         {
-            _settingsFile = Settings.GetSettingsFilename();
+            var file = Utils.RequireRooted(SettingsManager.GetSettingsFilename());
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
+            _settingsFile = file;
             _settingsExisted = File.Exists(_settingsFile);
             _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
             _localizationBackup = LocalizationHelper.Base;
@@ -26,7 +29,7 @@ namespace uploader.Tests
             Directory.CreateDirectory(_testDirectory);
             Environment.CurrentDirectory = _testDirectory;
 
-            Settings.ClearCache();
+            SettingsManager.ClearCache();
             if (File.Exists(_settingsFile))
             {
                 File.Delete(_settingsFile);
@@ -37,13 +40,17 @@ namespace uploader.Tests
         {
             Environment.CurrentDirectory = _originalCurrentDirectory;
 
+            var file = Utils.RequireRooted(_settingsFile);
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
+
             if (_settingsExisted)
             {
-                File.WriteAllText(_settingsFile, _settingsBackup);
+                File.WriteAllText(file, _settingsBackup);
             }
-            else if (File.Exists(_settingsFile))
+            else if (File.Exists(file))
             {
-                File.Delete(_settingsFile);
+                File.Delete(file);
             }
 
             LocalizationHelper.Base = _localizationBackup;
@@ -60,13 +67,13 @@ namespace uploader.Tests
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "vtu_settings.json");
 
-            Assert.Equal(expectedPath, Settings.GetSettingsFilename());
+            Assert.Equal(Utils.RequireRooted(expectedPath), SettingsManager.GetSettingsFilename());
         }
 
         [Fact]
         public void LoadSettings_MissingFile_ReturnsDefault()
         {
-            var settings = Settings.LoadSettings();
+            var settings = SettingsManager.LoadSettings();
 
             Assert.NotNull(settings);
             Assert.Equal("", settings.ApiKey);
@@ -104,9 +111,12 @@ namespace uploader.Tests
                 DirectUpload = true
             };
 
-            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(expected));
+            var file = Utils.RequireRooted(_settingsFile);
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
+            File.WriteAllText(file, JsonConvert.SerializeObject(expected));
 
-            return Settings.LoadSettings();
+            return SettingsManager.LoadSettings();
         }
 
         [Fact]
@@ -124,10 +134,13 @@ namespace uploader.Tests
                 DirectUpload = true
             };
 
-            Settings.SaveSettings(settings);
+            SettingsManager.SaveSettings(settings);
 
-            Assert.True(File.Exists(_settingsFile));
-            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(_settingsFile));
+            var file = Utils.RequireRooted(_settingsFile);
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
+            Assert.True(File.Exists(file));
+            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(file));
             Assert.NotNull(persisted);
             Assert.Equal("test-api-key", persisted.ApiKey);
             Assert.Equal(languageFile, persisted.Language);
@@ -146,10 +159,13 @@ namespace uploader.Tests
                 DirectUpload = true
             };
 
-            Settings.SaveSettings(settings);
+            SettingsManager.SaveSettings(settings);
 
             Assert.Equal("", settings.Language);
-            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(_settingsFile));
+            var file = Utils.RequireRooted(_settingsFile);
+            if (!Path.IsPathRooted(file))
+                throw new InvalidOperationException("Settings path must be rooted");
+            var persisted = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(file));
             Assert.NotNull(persisted);
             Assert.Equal("", persisted.Language);
             Assert.Equal("test-api-key", persisted.ApiKey);

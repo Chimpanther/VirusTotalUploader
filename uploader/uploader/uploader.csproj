@@ -107,6 +107,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+        <Compile Include="ControlExtensions.cs" />
+    <Compile Include="VirusTotalClient.cs" />
+    <Compile Include="SettingsManager.cs" />
     <Compile Include="LocalizationBase.cs" />
     <Compile Include="LocalizationHelper.cs" />
     <Compile Include="MainForm.cs">

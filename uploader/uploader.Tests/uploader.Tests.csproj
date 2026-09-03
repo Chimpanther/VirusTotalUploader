@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Compile Include="..\uploader\Utils.cs" Link="Utils.cs" />
+        <Compile Include="..\uploader\SettingsManager.cs" Link="SettingsManager.cs" />
     <Compile Include="..\uploader\Settings.cs" />
     <Compile Include="..\uploader\LocalizationBase.cs" />
     <Compile Include="..\uploader\LocalizationHelper.cs" />
