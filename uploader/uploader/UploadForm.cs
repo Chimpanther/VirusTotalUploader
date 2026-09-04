@@ -132,21 +132,25 @@ private void StartUploadThread()
             Task.Run(async () => await UploadAsync(token));
         }
 
-        private void UploadForm_Load(object sender, EventArgs e)
+        private async void UploadForm_Load(object sender, EventArgs e)
         {
+            settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
+            uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
+            statusLabel.Text = LocalizationHelper.Base.Message_Idle;
+
             if (_isFolder)
             {
                 sha2Textbox.Text = "N/A (Folder)";
             }
             else
             {
-                _cachedSha256 = Utils.GetSHA256(_path);
-                sha2Textbox.Text = _cachedSha256;
-            }
+                sha2Textbox.Text = "Calculating...";
+                uploadButton.Enabled = false;
 
-            settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
-            uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
-            statusLabel.Text = LocalizationHelper.Base.Message_Idle;
+                _cachedSha256 = await Task.Run(() => Utils.GetSHA256(_path));
+                sha2Textbox.Text = _cachedSha256;
+                uploadButton.Enabled = true;
+            }
 
             if (_settings.DirectUpload)
             {
