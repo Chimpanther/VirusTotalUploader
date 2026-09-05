@@ -171,5 +171,39 @@ namespace uploader.Tests
             Assert.Equal("test-api-key", persisted.ApiKey);
             Assert.True(persisted.DirectUpload);
         }
+
+        [Fact]
+        public void ClearCache_NextLoadReadsFromFile()
+        {
+            var initialSettings = new Settings
+            {
+                ApiKey = "InitialKey",
+                Language = "English",
+                DirectUpload = false
+            };
+            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(initialSettings));
+
+            // First load will cache it
+            var firstLoad = Settings.LoadSettings();
+            Assert.Equal("InitialKey", firstLoad.ApiKey);
+
+            // Now modify the file directly
+            var updatedSettings = new Settings
+            {
+                ApiKey = "UpdatedKey",
+                Language = "French",
+                DirectUpload = true
+            };
+            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(updatedSettings));
+
+            // Clear cache
+            Settings.ClearCache();
+
+            // Second load should read from file
+            var secondLoad = Settings.LoadSettings();
+            Assert.Equal("UpdatedKey", secondLoad.ApiKey);
+            Assert.Equal("French", secondLoad.Language);
+            Assert.True(secondLoad.DirectUpload);
+        }
     }
 }
