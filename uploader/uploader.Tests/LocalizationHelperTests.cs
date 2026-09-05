@@ -163,6 +163,16 @@ namespace uploader.Tests
             Assert.Equal("More", LocalizationHelper.Base.MainForm_More);
         }
 
+
+        [Fact]
+        public void Update_WithInvalidLanguagePath_ThrowsFileNotFoundException()
+        {
+            var languageFile = Path.Combine(_testDirectory, "nonexistent.json");
+            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(new Settings { Language = languageFile }));
+
+            Assert.Throws<FileNotFoundException>(() => LocalizationHelper.Update());
+        }
+
         [Fact]
         public void Export_CreatesJsonFileWithDefaultValues()
         {
