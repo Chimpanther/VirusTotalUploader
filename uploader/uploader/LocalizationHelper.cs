@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Newtonsoft.Json;
 
@@ -16,13 +16,17 @@ namespace uploader
 
         public static void Load(string path)
         {
-            var context = File.ReadAllText(path);
+            var fullPath = Utils.RequireRooted(path);
+            if (!Path.IsPathRooted(fullPath))
+                throw new ArgumentException("Path must be rooted", nameof(path));
+
+            var context = File.ReadAllText(fullPath);
             Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
         }
 
         public static void Update()
         {
-            var settings = Settings.LoadSettings();
+            var settings = SettingsManager.LoadSettings();
             if (!string.IsNullOrEmpty(settings.Language))
             {
                 Load(settings.Language);

@@ -46,7 +46,7 @@ namespace uploader
 
         private void MainForm_DragDrop(object sender, DragEventArgs e)
         {
-            var settings = Settings.LoadSettings();
+            var settings = SettingsManager.LoadSettings();
 
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
             foreach (var file in files)
@@ -59,7 +59,7 @@ namespace uploader
 
         private void MainForm_Shown(object sender, EventArgs e)
         {
-            var settings = Settings.LoadSettings();
+            var settings = SettingsManager.LoadSettings();
             var args = Environment.GetCommandLineArgs();
 
             if (args.Length == 2)
