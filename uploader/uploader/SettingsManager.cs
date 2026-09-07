@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using Newtonsoft.Json;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace uploader
 {
@@ -30,7 +32,16 @@ namespace uploader
             if (File.Exists(file))
                 File.Delete(file);
 
-            File.WriteAllText(file, serialized);
+            try
+            {
+                byte[] data = Encoding.UTF8.GetBytes(serialized);
+                byte[] encrypted = ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+                File.WriteAllBytes(file, encrypted);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                File.WriteAllText(file, serialized);
+            }
 
             lock (_cacheLock)
             {
@@ -59,7 +70,25 @@ namespace uploader
                     return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
                 }
 
-                var context = File.ReadAllText(file);
+                string context;
+                try
+                {
+                    byte[] encrypted = File.ReadAllBytes(file);
+                    byte[] decrypted = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+                    context = Encoding.UTF8.GetString(decrypted);
+                }
+                catch (CryptographicException)
+                {
+                    // Fallback for previously unencrypted files
+                    context = File.ReadAllText(file);
+                    // Resave to encrypt it
+                    var tempSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
+                    SaveSettings(tempSettings);
+                }
+                catch (PlatformNotSupportedException)
+                {
+                    context = File.ReadAllText(file);
+                }
                 _cachedSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
                 return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
             }

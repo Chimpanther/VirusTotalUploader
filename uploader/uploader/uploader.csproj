@@ -105,9 +105,10 @@
     <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Security" />
   </ItemGroup>
   <ItemGroup>
-        <Compile Include="ControlExtensions.cs" />
+    <Compile Include="ControlExtensions.cs" />
     <Compile Include="VirusTotalClient.cs" />
     <Compile Include="SettingsManager.cs" />
     <Compile Include="LocalizationBase.cs" />
