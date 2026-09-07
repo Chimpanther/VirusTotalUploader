@@ -46,12 +46,25 @@ namespace uploader
             }
 
             var tasks = new List<Task>();
-            foreach (var file in filesToUpload)
+            using (var throttler = new SemaphoreSlim(4))
             {
-                tasks.Add(UploadFileAsync(file, job, token));
+                foreach (var file in filesToUpload)
+                {
+                    await throttler.WaitAsync(token);
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await UploadFileAsync(file, job, token);
+                        }
+                        finally
+                        {
+                            throttler.Release();
+                        }
+                    }, token));
+                }
+                await Task.WhenAll(tasks);
             }
-
-            await Task.WhenAll(tasks);
         }
 
         private async Task UploadFileAsync(string fullPath, UploadJob job, CancellationToken token)
