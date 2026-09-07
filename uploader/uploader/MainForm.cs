@@ -53,6 +53,10 @@ namespace uploader
             {
                 var uploadForm = new UploadForm(this, settings, true, file);
                 uploadForm.Show();
+            }
+
+            if (files != null && files.Length > 0)
+            {
                 this.Hide();
             }
         }
