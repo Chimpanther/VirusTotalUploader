@@ -46,7 +46,7 @@ namespace uploader
             {
                 if (_cachedSettings != null)
                 {
-                    return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+                    return _cachedSettings.Clone();
                 }
 
                 var file = Utils.RequireRooted(GetSettingsFilename());
@@ -56,12 +56,12 @@ namespace uploader
                 if (!File.Exists(file))
                 {
                     _cachedSettings = new Settings();
-                    return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+                    return _cachedSettings.Clone();
                 }
 
                 var context = File.ReadAllText(file);
                 _cachedSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
-                return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+                return _cachedSettings.Clone();
             }
         }
 
