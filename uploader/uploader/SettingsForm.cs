@@ -10,99 +10,107 @@ using DarkUI.Forms;
 
 namespace uploader
 {
-    public partial class SettingsForm : DarkForm
+    public partial class SettingsForm : DarkForm, ISettingsView
     {
+        private readonly SettingsPresenter _presenter;
+
         public SettingsForm()
         {
             InitializeComponent();
+            _presenter = new SettingsPresenter(this);
         }
 
         private void SettingsForm_Load(object sender, EventArgs e)
         {
-            var settings = SettingsManager.LoadSettings();
-
-            apiTextbox.Text = settings.ApiKey;
-            directCheckbox.Checked = settings.DirectUpload;
-
-            var languages = LocalizationHelper.GetLanguages();
-            languageCombo.Items.Clear();
-            foreach (var language in languages)
-            {
-                languageCombo.Items.Add(language);
-            }
-
-            if (string.IsNullOrEmpty(settings.Language))
-            {
-                var defaultLanguage = languageCombo.Items.Add("Default (Build-in English)");
-                languageCombo.SelectedIndex = defaultLanguage;
-            }
-            else
-            {
-                var index = languageCombo.Items.IndexOf(settings.Language);
-                languageCombo.SelectedIndex = index;
-            }
-
-            generalGroupBox.Text = LocalizationHelper.Base.SettingsForm_General;
-            apiLabel.Text = LocalizationHelper.Base.SettingsForm_Key;
-            getApiButton.Text = LocalizationHelper.Base.SettingsForm_Get;
-            languageLabel.Text = LocalizationHelper.Base.SettingsForm_Language;
-            saveButton.Text = LocalizationHelper.Base.SettingsForm_Save;
-            openButton.Text = LocalizationHelper.Base.SettingsForm_Open;
-            this.Text = LocalizationHelper.Base.SettingsForm_Title;
-            directCheckbox.Text = LocalizationHelper.Base.SettingsForm_DirectUpload;
+            _presenter.Load();
         }
 
         private void darkButton1_Click(object sender, EventArgs e)
         {
-            var file = Utils.RequireRooted(SettingsManager.GetSettingsFilename());
-            if (!Path.IsPathRooted(file))
-                return;
-            if (!File.Exists(file))
-            {
-                statusLabel.Text = LocalizationHelper.Base.Message_NoSettings;
-                return;
-            }
-
-            Utils.RevealInExplorer(file);
+            _presenter.OpenSettingsFile();
         }
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            apiTextbox.Text = apiTextbox.Text.Trim();
-
-            var settings = new Settings
-            {
-                ApiKey = apiTextbox.Text,
-                Language = languageCombo.Text,
-                DirectUpload = directCheckbox.Checked
-            };
-
-            SettingsManager.SaveSettings(settings);
-            using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.Message_Saved, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
-            {
-                messageBox.ShowDialog();
-            }
-
-            // Needs full restart to initialize main form strings again
-            Application.Restart();
-            Environment.Exit(0);
+            _presenter.SaveSettings();
         }
 
         private void getApiButton_Click(object sender, EventArgs e)
         {
-            try
+            _presenter.GetApiKey();
+        }
+
+        public string ApiKey
+        {
+            get => apiTextbox.Text;
+            set => apiTextbox.Text = value;
+        }
+
+        public bool DirectUpload
+        {
+            get => directCheckbox.Checked;
+            set => directCheckbox.Checked = value;
+        }
+
+        public string Language
+        {
+            get => languageCombo.Text;
+            set => languageCombo.Text = value;
+        }
+
+        public void ClearLanguages() => languageCombo.Items.Clear();
+
+        public void AddLanguage(string language) => languageCombo.Items.Add(language);
+
+        public int AddLanguageAndGetIndex(string language) => languageCombo.Items.Add(language);
+
+        public void SetLanguageSelectedIndex(int index) => languageCombo.SelectedIndex = index;
+
+        public int GetLanguageIndexOf(string language) => languageCombo.Items.IndexOf(language);
+
+        public void SetLocalization(LocalizationBase loc)
+        {
+            generalGroupBox.Text = loc.SettingsForm_General;
+            apiLabel.Text = loc.SettingsForm_Key;
+            getApiButton.Text = loc.SettingsForm_Get;
+            languageLabel.Text = loc.SettingsForm_Language;
+            saveButton.Text = loc.SettingsForm_Save;
+            openButton.Text = loc.SettingsForm_Open;
+            this.Text = loc.SettingsForm_Title;
+            directCheckbox.Text = loc.SettingsForm_DirectUpload;
+        }
+
+        public void ShowStatusMessage(string message)
+        {
+            statusLabel.Text = message;
+        }
+
+        public void ShowMessageBox(string message, string caption)
+        {
+            using (var messageBox = new DarkMessageBox(message, caption, DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "https://developers.virustotal.com/reference",
-                    UseShellExecute = true
-                });
+                messageBox.ShowDialog();
             }
-            catch (Exception ex)
+        }
+
+        public void RevealInExplorer(string path)
+        {
+            Utils.RevealInExplorer(path);
+        }
+
+        public void OpenUrl(string url)
+        {
+            Process.Start(new ProcessStartInfo
             {
-                Debug.WriteLine($"Failed to open URL: {ex.Message}");
-                statusLabel.Text = "Failed to open URL. Please check your browser settings.";
-            }
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+
+        public void RestartApplication()
+        {
+            Application.Restart();
+            Environment.Exit(0);
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace uploader
 {
-    class LocalizationBase
+    public class LocalizationBase
     {
         public string MainForm_DragFile = "Drag file here";
         public string MainForm_More = "More";
