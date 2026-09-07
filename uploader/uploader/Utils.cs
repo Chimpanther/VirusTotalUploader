@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -25,7 +25,7 @@ namespace uploader
             var pidl = ILCreateFromPathW(file);
             if (pidl == IntPtr.Zero)
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                ProcessStart(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "explorer.exe",
                     UseShellExecute = true
@@ -43,7 +43,9 @@ namespace uploader
             }
         }
 
-        public static void OpenUrlSafe(string url)
+        internal static Action<System.Diagnostics.ProcessStartInfo> ProcessStart = psi => System.Diagnostics.Process.Start(psi);
+
+        public static void OpenUrlSafe(string url, Action<Exception>? onError = null)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
             {
@@ -69,13 +71,14 @@ namespace uploader
                         FileName = uri.AbsoluteUri,
                         UseShellExecute = true
                     };
-                    System.Diagnostics.Process.Start(psi);
+                    ProcessStart(psi);
                 }
                 catch (Exception ex)
                 {
                     // Process.Start can throw e.g. Win32Exception if there is no default handler for HTTP/HTTPS URLs.
                     // Silently ignoring is safer than crashing the background thread.
                     System.Diagnostics.Debug.WriteLine($"Failed to open URL: {ex.Message}");
+                    onError?.Invoke(ex);
                 }
             }
         }

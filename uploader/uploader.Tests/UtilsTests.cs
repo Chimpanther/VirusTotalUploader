@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using uploader;
 using Xunit;
@@ -59,6 +59,56 @@ namespace uploader.Tests
         public void GetSHA256_EmptyFile_ReturnsCorrectHash()
         {
             AssertFileHash(Utils.GetSHA256, null, "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855");
+        }
+
+        [Fact]
+        public void OpenUrlSafe_ValidUrl_ExecutesProcessStart()
+        {
+            var originalProcessStart = Utils.ProcessStart;
+            bool processStarted = false;
+            try
+            {
+                Utils.ProcessStart = psi =>
+                {
+                    processStarted = true;
+                    Assert.Equal("https://developers.virustotal.com/reference", psi.FileName);
+                    Assert.True(psi.UseShellExecute);
+                };
+
+                Utils.OpenUrlSafe("https://developers.virustotal.com/reference");
+
+                Assert.True(processStarted);
+            }
+            finally
+            {
+                Utils.ProcessStart = originalProcessStart;
+            }
+        }
+
+        [Fact]
+        public void OpenUrlSafe_ProcessStartThrows_InvokesOnError()
+        {
+            var originalProcessStart = Utils.ProcessStart;
+            Exception? caughtException = null;
+            try
+            {
+                Utils.ProcessStart = psi =>
+                {
+                    throw new System.ComponentModel.Win32Exception("No application is associated with the specified file for this operation");
+                };
+
+                Utils.OpenUrlSafe("https://developers.virustotal.com/reference", ex =>
+                {
+                    caughtException = ex;
+                });
+
+                Assert.NotNull(caughtException);
+                Assert.IsType<System.ComponentModel.Win32Exception>(caughtException);
+            }
+            finally
+            {
+                Utils.ProcessStart = originalProcessStart;
+            }
         }
     }
 }
