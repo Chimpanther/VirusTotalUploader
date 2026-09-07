@@ -7,6 +7,17 @@ namespace uploader.Tests
 {
     public class MainFormRouterTests
     {
+        private readonly MockMainFormView _view;
+        private readonly MainFormRouter _router;
+        private readonly Settings _settings;
+
+        public MainFormRouterTests()
+        {
+            _view = new MockMainFormView();
+            _router = new MainFormRouter(_view);
+            _settings = new Settings();
+        }
+
         private class MockMainFormView : IMainFormView
         {
             public List<(Settings settings, bool reopen, string file)> ShowUploadFormCalls = new();
@@ -27,111 +38,93 @@ namespace uploader.Tests
         public void HandleFilesDropped_WithNullFiles_DoesNothing()
         {
             // Arrange
-            var view = new MockMainFormView();
-            var router = new MainFormRouter(view);
-            var settings = new Settings();
 
             // Act
-            router.HandleFilesDropped(settings, null!);
+            _router.HandleFilesDropped(_settings, null!);
 
             // Assert
-            Assert.Empty(view.ShowUploadFormCalls);
-            Assert.Equal(0, view.HideFormCalls);
+            Assert.Empty(_view.ShowUploadFormCalls);
+            Assert.Equal(0, _view.HideFormCalls);
         }
 
         [Fact]
         public void HandleFilesDropped_WithEmptyFiles_DoesNothing()
         {
             // Arrange
-            var view = new MockMainFormView();
-            var router = new MainFormRouter(view);
-            var settings = new Settings();
 
             // Act
-            router.HandleFilesDropped(settings, Array.Empty<string>());
+            _router.HandleFilesDropped(_settings, Array.Empty<string>());
 
             // Assert
-            Assert.Empty(view.ShowUploadFormCalls);
-            Assert.Equal(0, view.HideFormCalls);
+            Assert.Empty(_view.ShowUploadFormCalls);
+            Assert.Equal(0, _view.HideFormCalls);
         }
 
         [Fact]
         public void HandleFilesDropped_WithValidFiles_CallsShowAndHideForEach()
         {
             // Arrange
-            var view = new MockMainFormView();
-            var router = new MainFormRouter(view);
-            var settings = new Settings();
             var files = new[] { "file1.txt", "file2.txt" };
 
             // Act
-            router.HandleFilesDropped(settings, files);
+            _router.HandleFilesDropped(_settings, files);
 
             // Assert
-            Assert.Equal(2, view.ShowUploadFormCalls.Count);
-            Assert.Equal("file1.txt", view.ShowUploadFormCalls[0].file);
-            Assert.True(view.ShowUploadFormCalls[0].reopen);
-            Assert.Equal(settings, view.ShowUploadFormCalls[0].settings);
+            Assert.Equal(2, _view.ShowUploadFormCalls.Count);
+            Assert.Equal("file1.txt", _view.ShowUploadFormCalls[0].file);
+            Assert.True(_view.ShowUploadFormCalls[0].reopen);
+            Assert.Equal(_settings, _view.ShowUploadFormCalls[0].settings);
 
-            Assert.Equal("file2.txt", view.ShowUploadFormCalls[1].file);
-            Assert.True(view.ShowUploadFormCalls[1].reopen);
-            Assert.Equal(settings, view.ShowUploadFormCalls[1].settings);
+            Assert.Equal("file2.txt", _view.ShowUploadFormCalls[1].file);
+            Assert.True(_view.ShowUploadFormCalls[1].reopen);
+            Assert.Equal(_settings, _view.ShowUploadFormCalls[1].settings);
 
-            Assert.Equal(2, view.HideFormCalls);
+            Assert.Equal(2, _view.HideFormCalls);
         }
 
         [Fact]
         public void HandleCommandLineArgs_WithNullArgs_DoesNothing()
         {
             // Arrange
-            var view = new MockMainFormView();
-            var router = new MainFormRouter(view);
-            var settings = new Settings();
 
             // Act
-            router.HandleCommandLineArgs(settings, null!);
+            _router.HandleCommandLineArgs(_settings, null!);
 
             // Assert
-            Assert.Empty(view.ShowUploadFormCalls);
-            Assert.Equal(0, view.HideFormCalls);
+            Assert.Empty(_view.ShowUploadFormCalls);
+            Assert.Equal(0, _view.HideFormCalls);
         }
 
         [Fact]
         public void HandleCommandLineArgs_WithInvalidLengthArgs_DoesNothing()
         {
             // Arrange
-            var view = new MockMainFormView();
-            var router = new MainFormRouter(view);
-            var settings = new Settings();
             var args = new[] { "program.exe" }; // Length 1
 
             // Act
-            router.HandleCommandLineArgs(settings, args);
+            _router.HandleCommandLineArgs(_settings, args);
 
             // Assert
-            Assert.Empty(view.ShowUploadFormCalls);
-            Assert.Equal(0, view.HideFormCalls);
+            Assert.Empty(_view.ShowUploadFormCalls);
+            Assert.Equal(0, _view.HideFormCalls);
         }
 
         [Fact]
         public void HandleCommandLineArgs_WithValidLengthArgs_CallsShowAndHide()
         {
             // Arrange
-            var view = new MockMainFormView();
-            var router = new MainFormRouter(view);
-            var settings = new Settings();
             var args = new[] { "program.exe", "file.txt" }; // Length 2
 
             // Act
-            router.HandleCommandLineArgs(settings, args);
+            _router.HandleCommandLineArgs(_settings, args);
 
             // Assert
-            Assert.Single(view.ShowUploadFormCalls);
-            Assert.Equal("file.txt", view.ShowUploadFormCalls[0].file);
-            Assert.False(view.ShowUploadFormCalls[0].reopen);
-            Assert.Equal(settings, view.ShowUploadFormCalls[0].settings);
+            Assert.Single(_view.ShowUploadFormCalls);
+            Assert.Equal("file.txt", _view.ShowUploadFormCalls[0].file);
+            Assert.False(_view.ShowUploadFormCalls[0].reopen);
+            Assert.Equal(_settings, _view.ShowUploadFormCalls[0].settings);
 
-            Assert.Equal(1, view.HideFormCalls);
+            Assert.Equal(1, _view.HideFormCalls);
         }
     }
 }
