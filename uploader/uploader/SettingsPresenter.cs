@@ -4,12 +4,39 @@ using System.IO;
 
 namespace uploader
 {
+    public class SettingsFormLocalization
+    {
+        public string General { get; set; }
+        public string Key { get; set; }
+        public string Get { get; set; }
+        public string Language { get; set; }
+        public string Save { get; set; }
+        public string Open { get; set; }
+        public string Title { get; set; }
+        public string DirectUpload { get; set; }
+
+        public static SettingsFormLocalization FromBase(LocalizationBase loc)
+        {
+            return new SettingsFormLocalization
+            {
+                General = loc.SettingsForm_General,
+                Key = loc.SettingsForm_Key,
+                Get = loc.SettingsForm_Get,
+                Language = loc.SettingsForm_Language,
+                Save = loc.SettingsForm_Save,
+                Open = loc.SettingsForm_Open,
+                Title = loc.SettingsForm_Title,
+                DirectUpload = loc.SettingsForm_DirectUpload
+            };
+        }
+    }
+
     public interface ISettingsView
     {
         Settings CurrentSettings { get; set; }
         void LoadLanguages(string[] languages);
         void SelectLanguageOrDefault(string language);
-        void SetLocalization(LocalizationBase loc);
+        void SetLocalization(SettingsFormLocalization loc);
         void ShowStatusMessage(string message);
         void ShowSuccessMessage(string message);
         void RevealInExplorer(string path);
@@ -40,7 +67,8 @@ namespace uploader
             _view.LoadLanguages(languages);
             _view.SelectLanguageOrDefault(settings.Language);
 
-            _view.SetLocalization(_localizationHelper.Base);
+            var formLoc = SettingsFormLocalization.FromBase(_localizationHelper.Base);
+            _view.SetLocalization(formLoc);
         }
 
         public void OpenSettingsFile()

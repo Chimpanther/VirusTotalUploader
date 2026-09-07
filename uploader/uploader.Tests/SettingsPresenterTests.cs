@@ -55,7 +55,7 @@ namespace uploader.Tests
             _mockView.VerifySet(v => v.CurrentSettings = It.Is<Settings>(s => s.ApiKey == "test-api-key" && s.DirectUpload == true));
             _mockView.Verify(v => v.LoadLanguages(It.Is<string[]>(l => l.Length == 2 && l[0] == "English" && l[1] == "Spanish")), Times.Once);
             _mockView.Verify(v => v.SelectLanguageOrDefault("English"), Times.Once);
-            _mockView.Verify(v => v.SetLocalization(It.IsAny<LocalizationBase>()), Times.Once);
+            _mockView.Verify(v => v.SetLocalization(It.IsAny<SettingsFormLocalization>()), Times.Once);
         }
 
         [Fact]

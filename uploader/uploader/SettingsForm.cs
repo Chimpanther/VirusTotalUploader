@@ -81,16 +81,16 @@ namespace uploader
             }
         }
 
-        public void SetLocalization(LocalizationBase loc)
+        public void SetLocalization(SettingsFormLocalization loc)
         {
-            generalGroupBox.Text = loc.SettingsForm_General;
-            apiLabel.Text = loc.SettingsForm_Key;
-            getApiButton.Text = loc.SettingsForm_Get;
-            languageLabel.Text = loc.SettingsForm_Language;
-            saveButton.Text = loc.SettingsForm_Save;
-            openButton.Text = loc.SettingsForm_Open;
-            this.Text = loc.SettingsForm_Title;
-            directCheckbox.Text = loc.SettingsForm_DirectUpload;
+            generalGroupBox.Text = loc.General;
+            apiLabel.Text = loc.Key;
+            getApiButton.Text = loc.Get;
+            languageLabel.Text = loc.Language;
+            saveButton.Text = loc.Save;
+            openButton.Text = loc.Open;
+            this.Text = loc.Title;
+            directCheckbox.Text = loc.DirectUpload;
         }
 
         public void ShowStatusMessage(string message)
