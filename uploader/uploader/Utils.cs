@@ -25,7 +25,7 @@ namespace uploader
             var pidl = ILCreateFromPathW(file);
             if (pidl == IntPtr.Zero)
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                ProcessStarter(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "explorer.exe",
                     UseShellExecute = true
@@ -42,6 +42,8 @@ namespace uploader
                 ILFree(pidl);
             }
         }
+
+        internal static Action<System.Diagnostics.ProcessStartInfo> ProcessStarter = psi => System.Diagnostics.Process.Start(psi);
 
         public static void OpenUrlSafe(string url)
         {
@@ -69,7 +71,7 @@ namespace uploader
                         FileName = uri.AbsoluteUri,
                         UseShellExecute = true
                     };
-                    System.Diagnostics.Process.Start(psi);
+                    ProcessStarter(psi);
                 }
                 catch (Exception ex)
                 {
