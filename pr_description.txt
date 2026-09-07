@@ -1,0 +1,4 @@
+🎯 **What:** Removed unused `using System.Text;` import from `uploader/uploader/MainForm.cs`.
+💡 **Why:** Code cleanup to remove unnecessary imports. Since no types from `System.Text` (like `StringBuilder` or `Encoding`) are used in this file, removing the import reduces clutter and improves codebase maintainability.
+✅ **Verification:** Modified the source file using a Python script in binary mode to preserve CRLF endings and UTF-8 BOM. Ran `dotnet test` in the `uploader.Tests` project to confirm that no tests were broken and the codebase compiles and tests pass successfully.
+✨ **Result:** Improved code cleanliness without changing any behavior.
