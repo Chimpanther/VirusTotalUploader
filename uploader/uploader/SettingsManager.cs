@@ -32,16 +32,7 @@ namespace uploader
             if (File.Exists(file))
                 File.Delete(file);
 
-            try
-            {
-                byte[] data = Encoding.UTF8.GetBytes(serialized);
-                byte[] encrypted = ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
-                File.WriteAllBytes(file, encrypted);
-            }
-            catch (PlatformNotSupportedException)
-            {
-                File.WriteAllText(file, serialized);
-            }
+            File.WriteAllText(file, serialized);
 
             lock (_cacheLock)
             {
@@ -70,27 +61,46 @@ namespace uploader
                     return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
                 }
 
-                string context;
-                try
-                {
-                    byte[] encrypted = File.ReadAllBytes(file);
-                    byte[] decrypted = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
-                    context = Encoding.UTF8.GetString(decrypted);
-                }
-                catch (CryptographicException)
-                {
-                    // Fallback for previously unencrypted files
-                    context = File.ReadAllText(file);
-                    // Resave to encrypt it
-                    var tempSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
-                    SaveSettings(tempSettings);
-                }
-                catch (PlatformNotSupportedException)
-                {
-                    context = File.ReadAllText(file);
-                }
+                var context = File.ReadAllText(file);
                 _cachedSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
                 return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+            }
+        }
+
+        private static void WriteSettingsContent(string file, string serialized)
+        {
+            try
+            {
+                byte[] data = Encoding.UTF8.GetBytes(serialized);
+                byte[] encrypted = ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+                File.WriteAllBytes(file, encrypted);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                File.WriteAllText(file, serialized);
+            }
+        }
+
+        private static string ReadSettingsContent(string file)
+        {
+            try
+            {
+                byte[] encrypted = File.ReadAllBytes(file);
+                byte[] decrypted = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+                return Encoding.UTF8.GetString(decrypted);
+            }
+            catch (CryptographicException)
+            {
+                // Fallback for previously unencrypted files
+                string context = File.ReadAllText(file);
+                // Resave to encrypt it
+                var tempSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
+                SaveSettings(tempSettings);
+                return context;
+            }
+            catch (PlatformNotSupportedException)
+            {
+                return File.ReadAllText(file);
             }
         }
 
