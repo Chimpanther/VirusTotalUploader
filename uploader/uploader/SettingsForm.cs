@@ -40,33 +40,46 @@ namespace uploader
             _presenter.GetApiKey();
         }
 
-        public string ApiKey
+        public Settings CurrentSettings
         {
-            get => apiTextbox.Text;
-            set => apiTextbox.Text = value;
+            get => new Settings
+            {
+                ApiKey = apiTextbox.Text,
+                Language = languageCombo.Text,
+                DirectUpload = directCheckbox.Checked
+            };
+            set
+            {
+                apiTextbox.Text = value.ApiKey;
+                directCheckbox.Checked = value.DirectUpload;
+            }
         }
 
-        public bool DirectUpload
+        public void LoadLanguages(string[] languages)
         {
-            get => directCheckbox.Checked;
-            set => directCheckbox.Checked = value;
+            languageCombo.Items.Clear();
+            foreach (var language in languages)
+            {
+                languageCombo.Items.Add(language);
+            }
         }
 
-        public string Language
+        public void SelectLanguageOrDefault(string language)
         {
-            get => languageCombo.Text;
-            set => languageCombo.Text = value;
+            if (string.IsNullOrEmpty(language))
+            {
+                var defaultLanguage = languageCombo.Items.Add("Default (Build-in English)");
+                languageCombo.SelectedIndex = defaultLanguage;
+            }
+            else
+            {
+                var index = languageCombo.Items.IndexOf(language);
+                if (index != -1)
+                {
+                    languageCombo.SelectedIndex = index;
+                }
+            }
         }
-
-        public void ClearLanguages() => languageCombo.Items.Clear();
-
-        public void AddLanguage(string language) => languageCombo.Items.Add(language);
-
-        public int AddLanguageAndGetIndex(string language) => languageCombo.Items.Add(language);
-
-        public void SetLanguageSelectedIndex(int index) => languageCombo.SelectedIndex = index;
-
-        public int GetLanguageIndexOf(string language) => languageCombo.Items.IndexOf(language);
 
         public void SetLocalization(LocalizationBase loc)
         {
@@ -85,9 +98,9 @@ namespace uploader
             statusLabel.Text = message;
         }
 
-        public void ShowMessageBox(string message, string caption)
+        public void ShowSuccessMessage(string message)
         {
-            using (var messageBox = new DarkMessageBox(message, caption, DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
+            using (var messageBox = new DarkMessageBox(message, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
             }

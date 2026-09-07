@@ -50,16 +50,11 @@ namespace uploader.Tests
         [Fact]
         public void Load_SetsViewPropertiesFromSettingsAndLocalization()
         {
-            _mockView.Setup(v => v.GetLanguageIndexOf("English")).Returns(0);
-
             _presenter.Load();
 
-            _mockView.VerifySet(v => v.ApiKey = "test-api-key");
-            _mockView.VerifySet(v => v.DirectUpload = true);
-            _mockView.Verify(v => v.ClearLanguages(), Times.Once);
-            _mockView.Verify(v => v.AddLanguage("English"), Times.Once);
-            _mockView.Verify(v => v.AddLanguage("Spanish"), Times.Once);
-            _mockView.Verify(v => v.SetLanguageSelectedIndex(0), Times.Once);
+            _mockView.VerifySet(v => v.CurrentSettings = It.Is<Settings>(s => s.ApiKey == "test-api-key" && s.DirectUpload == true));
+            _mockView.Verify(v => v.LoadLanguages(It.Is<string[]>(l => l.Length == 2 && l[0] == "English" && l[1] == "Spanish")), Times.Once);
+            _mockView.Verify(v => v.SelectLanguageOrDefault("English"), Times.Once);
             _mockView.Verify(v => v.SetLocalization(It.IsAny<LocalizationBase>()), Times.Once);
         }
 
@@ -72,36 +67,22 @@ namespace uploader.Tests
                 DirectUpload = true,
                 Language = ""
             });
-            _mockView.Setup(v => v.AddLanguageAndGetIndex("Default (Build-in English)")).Returns(2);
 
             _presenter.Load();
 
-            _mockView.Verify(v => v.AddLanguageAndGetIndex("Default (Build-in English)"), Times.Once);
-            _mockView.Verify(v => v.SetLanguageSelectedIndex(2), Times.Once);
-        }
-
-        [Fact]
-        public void Load_LanguageNotFound_DoesNotSetSelectedIndex()
-        {
-            _mockSettingsManager.Setup(m => m.LoadSettings()).Returns(new Settings
-            {
-                ApiKey = "test-api-key",
-                DirectUpload = true,
-                Language = "French"
-            });
-            _mockView.Setup(v => v.GetLanguageIndexOf("French")).Returns(-1);
-
-            _presenter.Load();
-
-            _mockView.Verify(v => v.SetLanguageSelectedIndex(It.IsAny<int>()), Times.Never);
+            _mockView.Verify(v => v.SelectLanguageOrDefault(""), Times.Once);
         }
 
         [Fact]
         public void SaveSettings_SavesTrimmedApiKeyAndShowsMessageAndRestarts()
         {
-            _mockView.SetupGet(v => v.ApiKey).Returns("  new-api-key  ");
-            _mockView.SetupGet(v => v.Language).Returns("Spanish");
-            _mockView.SetupGet(v => v.DirectUpload).Returns(false);
+            var viewSettings = new Settings
+            {
+                ApiKey = "  new-api-key  ",
+                Language = "Spanish",
+                DirectUpload = false
+            };
+            _mockView.SetupGet(v => v.CurrentSettings).Returns(viewSettings);
 
             _presenter.SaveSettings();
 
@@ -111,7 +92,7 @@ namespace uploader.Tests
                 s.DirectUpload == false
             )), Times.Once);
 
-            _mockView.Verify(v => v.ShowMessageBox("Settings saved successfully.", "Ok"), Times.Once);
+            _mockView.Verify(v => v.ShowSuccessMessage("Settings saved successfully."), Times.Once);
             _mockView.Verify(v => v.RestartApplication(), Times.Once);
         }
 

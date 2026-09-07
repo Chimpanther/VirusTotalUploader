@@ -6,17 +6,12 @@ namespace uploader
 {
     public interface ISettingsView
     {
-        string ApiKey { get; set; }
-        bool DirectUpload { get; set; }
-        string Language { get; set; }
-        void ClearLanguages();
-        void AddLanguage(string language);
-        int AddLanguageAndGetIndex(string language);
-        void SetLanguageSelectedIndex(int index);
-        int GetLanguageIndexOf(string language);
+        Settings CurrentSettings { get; set; }
+        void LoadLanguages(string[] languages);
+        void SelectLanguageOrDefault(string language);
         void SetLocalization(LocalizationBase loc);
         void ShowStatusMessage(string message);
-        void ShowMessageBox(string message, string caption);
+        void ShowSuccessMessage(string message);
         void RevealInExplorer(string path);
         void OpenUrl(string url);
         void RestartApplication();
@@ -39,29 +34,11 @@ namespace uploader
         {
             var settings = _settingsManager.LoadSettings();
 
-            _view.ApiKey = settings.ApiKey;
-            _view.DirectUpload = settings.DirectUpload;
+            _view.CurrentSettings = settings;
 
             var languages = _localizationHelper.GetLanguages();
-            _view.ClearLanguages();
-            foreach (var language in languages)
-            {
-                _view.AddLanguage(language);
-            }
-
-            if (string.IsNullOrEmpty(settings.Language))
-            {
-                var defaultLanguage = _view.AddLanguageAndGetIndex("Default (Build-in English)");
-                _view.SetLanguageSelectedIndex(defaultLanguage);
-            }
-            else
-            {
-                var index = _view.GetLanguageIndexOf(settings.Language);
-                if (index != -1)
-                {
-                    _view.SetLanguageSelectedIndex(index);
-                }
-            }
+            _view.LoadLanguages(languages);
+            _view.SelectLanguageOrDefault(settings.Language);
 
             _view.SetLocalization(_localizationHelper.Base);
         }
@@ -83,18 +60,12 @@ namespace uploader
 
         public void SaveSettings()
         {
-            var apiKey = _view.ApiKey?.Trim() ?? string.Empty;
-
-            var settings = new Settings
-            {
-                ApiKey = apiKey,
-                Language = _view.Language,
-                DirectUpload = _view.DirectUpload
-            };
+            var settings = _view.CurrentSettings;
+            settings.ApiKey = settings.ApiKey?.Trim() ?? string.Empty;
 
             _settingsManager.SaveSettings(settings);
 
-            _view.ShowMessageBox(_localizationHelper.Base.Message_Saved, "Ok");
+            _view.ShowSuccessMessage(_localizationHelper.Base.Message_Saved);
             _view.RestartApplication();
         }
 
