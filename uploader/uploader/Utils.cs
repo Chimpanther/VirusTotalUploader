@@ -45,7 +45,7 @@ namespace uploader
 
         internal static Action<System.Diagnostics.ProcessStartInfo> ProcessStart = psi => System.Diagnostics.Process.Start(psi);
 
-        public static void OpenUrlSafe(string url, Action<Exception>? onError = null)
+        public static void OpenUrlSafe(string url, Action<Exception> onError = null)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
             {

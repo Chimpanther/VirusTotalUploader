@@ -187,7 +187,7 @@ namespace uploader.Tests
                 // instead of instantiating the real Form which throws MissingMethodException
                 // due to DarkUI not being fully mocked/referenced correctly in this test env.
 
-                string? capturedStatusText = null;
+                string capturedStatusText = null;
 
                 // Simulate the click behavior using our delegate
                 Utils.OpenUrlSafe("https://developers.virustotal.com/reference", ex =>

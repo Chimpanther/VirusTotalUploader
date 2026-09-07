@@ -89,7 +89,7 @@ namespace uploader.Tests
         public void OpenUrlSafe_ProcessStartThrows_InvokesOnError()
         {
             var originalProcessStart = Utils.ProcessStart;
-            Exception? caughtException = null;
+            Exception caughtException = null;
             try
             {
                 Utils.ProcessStart = psi =>
