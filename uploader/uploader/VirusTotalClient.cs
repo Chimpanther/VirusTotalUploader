@@ -28,9 +28,14 @@ namespace uploader
         public Action<string> OnError { get; set; }
 
         public VirusTotalClient(string apiKey)
+            : this(apiKey, new RestClient("https://www.virustotal.com"))
+        {
+        }
+
+        public VirusTotalClient(string apiKey, RestClient client)
         {
             _apiKey = apiKey;
-            _client = new RestClient("https://www.virustotal.com");
+            _client = client;
         }
 
         public async Task UploadAsync(UploadJob job, CancellationToken token)
