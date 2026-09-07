@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -14,7 +14,7 @@ using RestSharp;
 
 namespace uploader
 {
-    public partial class UploadForm : DarkForm
+    public partial class UploadForm : DarkForm, IUploadView
     {
         private readonly bool _reopen;
         private readonly string _path;
@@ -35,12 +35,12 @@ namespace uploader
             InitializeComponent();
         }
 
-        private void ChangeStatus(string text)
+        public void ChangeStatus(string text)
         {
             this.InvokeIfRequired(() => statusLabel.Text = text);
         }
 
-        private void Finish(bool resetText)
+        public void Finish(bool resetText)
         {
             this.InvokeIfRequired(() =>
             {
@@ -58,7 +58,7 @@ namespace uploader
             this.InvokeIfRequired(() => this.Close());
         }
 
-        private void DisplayError(string error)
+        public void DisplayError(string error)
         {
             this.InvokeIfRequired(() =>
             {
@@ -69,49 +69,33 @@ namespace uploader
             });
         }
 
+        public void ShowApiKeyMissingError()
+        {
+            this.InvokeIfRequired(() =>
+            {
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
+            });
+        }
+
+        public void ShowApiKeyInvalidLengthError()
+        {
+            this.InvokeIfRequired(() =>
+            {
+                using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
+                {
+                    messageBox.ShowDialog();
+                }
+            });
+        }
+
         private async Task UploadAsync(CancellationToken token)
         {
-            if (string.IsNullOrEmpty(_settings.ApiKey))
-            {
-                this.InvokeIfRequired(() =>
-                {
-                    using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_NoApiKey, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                    {
-                        messageBox.ShowDialog();
-                    }
-                });
-                return;
-            }
-
-            if (_settings.ApiKey.Length != 64)
-            {
-                this.InvokeIfRequired(() =>
-                {
-                    using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.UploadForm_InvalidLength, LocalizationHelper.Base.UploadForm_InvalidKey, DarkMessageBoxIcon.Error, DarkDialogButton.Ok))
-                    {
-                        messageBox.ShowDialog();
-                    }
-                });
-                return;
-            }
-
-            ChangeStatus(LocalizationHelper.Base.Message_Init);
-
-            var client = new VirusTotalClient(_settings.ApiKey);
-            client.OnStatusChanged = ChangeStatus;
-            client.OnError = DisplayError;
-
-            try
-            {
-                var job = new UploadJob { InitialPath = _path, IsFolder = _isFolder, CachedSha256 = _cachedSha256 };
-                await client.UploadAsync(job, token);
-            }
-            catch (OperationCanceledException)
-            {
-                // Cancellation was requested, do nothing special here.
-            }
-
-            Finish(true);
+            var presenter = new UploadPresenter(this, _settings, apiKey => new VirusTotalClient(apiKey));
+            var job = new UploadJob { InitialPath = _path, IsFolder = _isFolder, CachedSha256 = _cachedSha256 };
+            await presenter.UploadAsync(job, token);
         }
 
 private void StartUploadThread()

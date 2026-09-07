@@ -19,7 +19,7 @@ namespace uploader
         public string CachedSha256 { get; set; }
     }
 
-    public class VirusTotalClient
+    public class VirusTotalClient : IVirusTotalClient
 
     {
         private readonly string _apiKey;
