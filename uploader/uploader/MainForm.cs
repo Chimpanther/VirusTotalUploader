@@ -11,7 +11,7 @@ using DarkUI.Forms;
 
 namespace uploader
 {
-    public partial class MainForm : DarkForm
+    public partial class MainForm : DarkForm, IMainFormView
     {
         private SettingsForm _settingsForm = new SettingsForm();
 
@@ -47,14 +47,10 @@ namespace uploader
         private void MainForm_DragDrop(object sender, DragEventArgs e)
         {
             var settings = SettingsManager.LoadSettings();
-
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-            foreach (var file in files)
-            {
-                var uploadForm = new UploadForm(this, settings, true, file);
-                uploadForm.Show();
-                this.Hide();
-            }
+
+            var router = new MainFormRouter(this);
+            router.HandleFilesDropped(settings, files);
         }
 
         private void MainForm_Shown(object sender, EventArgs e)
@@ -62,13 +58,19 @@ namespace uploader
             var settings = SettingsManager.LoadSettings();
             var args = Environment.GetCommandLineArgs();
 
-            if (args.Length == 2)
-            {
-                var file = args[1]; // Second argument because .NET puts program filename to the first
-                var uploadForm = new UploadForm(this, settings, false, file);
-                uploadForm.Show();
-                this.Hide();
-            }
+            var router = new MainFormRouter(this);
+            router.HandleCommandLineArgs(settings, args);
+        }
+
+        public void ShowUploadForm(Settings settings, bool reopen, string file)
+        {
+            var uploadForm = new UploadForm(this, settings, reopen, file);
+            uploadForm.Show();
+        }
+
+        public void HideForm()
+        {
+            this.Hide();
         }
     }
 }
