@@ -4,6 +4,12 @@ using System.IO;
 
 namespace uploader
 {
+    public class MessageBoxOptions
+    {
+        public string Message { get; set; }
+        public string Caption { get; set; }
+    }
+
     public class SettingsFormLocalization
     {
         public string General { get; set; }
@@ -37,10 +43,10 @@ namespace uploader
         void LoadLanguages(string[] languages);
         void SelectLanguageOrDefault(string language);
         void SetLocalization(SettingsFormLocalization loc);
-        void ShowStatusMessage(string message);
-        void ShowSuccessMessage(string message);
-        void RevealInExplorer(string path);
-        void OpenUrl(string url);
+        void ShowStatusMessage(MessageBoxOptions options);
+        void ShowSuccessMessage(MessageBoxOptions options);
+        void RevealInExplorer(MessageBoxOptions options);
+        void OpenUrl(MessageBoxOptions options);
         void RestartApplication();
     }
 
@@ -79,11 +85,11 @@ namespace uploader
 
             if (!File.Exists(file))
             {
-                _view.ShowStatusMessage(_localizationHelper.Base.Message_NoSettings);
+                _view.ShowStatusMessage(new MessageBoxOptions { Message = _localizationHelper.Base.Message_NoSettings });
                 return;
             }
 
-            _view.RevealInExplorer(file);
+            _view.RevealInExplorer(new MessageBoxOptions { Message = file });
         }
 
         public void SaveSettings()
@@ -93,7 +99,7 @@ namespace uploader
 
             _settingsManager.SaveSettings(settings);
 
-            _view.ShowSuccessMessage(_localizationHelper.Base.Message_Saved);
+            _view.ShowSuccessMessage(new MessageBoxOptions { Message = _localizationHelper.Base.Message_Saved, Caption = "Ok" });
             _view.RestartApplication();
         }
 
@@ -101,12 +107,12 @@ namespace uploader
         {
             try
             {
-                _view.OpenUrl("https://developers.virustotal.com/reference");
+                _view.OpenUrl(new MessageBoxOptions { Message = "https://developers.virustotal.com/reference" });
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to open URL: {ex.Message}");
-                _view.ShowStatusMessage("Failed to open URL. Please check your browser settings.");
+                _view.ShowStatusMessage(new MessageBoxOptions { Message = "Failed to open URL. Please check your browser settings." });
             }
         }
     }

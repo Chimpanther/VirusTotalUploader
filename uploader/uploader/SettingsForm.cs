@@ -10,6 +10,12 @@ using DarkUI.Forms;
 
 namespace uploader
 {
+    public class MessageBoxOptions
+    {
+        public string Message { get; set; }
+        public string Caption { get; set; }
+    }
+
     public partial class SettingsForm : DarkForm, ISettingsView
     {
         private readonly SettingsPresenter _presenter;
@@ -93,29 +99,29 @@ namespace uploader
             directCheckbox.Text = loc.DirectUpload;
         }
 
-        public void ShowStatusMessage(string message)
+        public void ShowStatusMessage(MessageBoxOptions options)
         {
-            statusLabel.Text = message;
+            statusLabel.Text = options.Message;
         }
 
-        public void ShowSuccessMessage(string message)
+        public void ShowSuccessMessage(MessageBoxOptions options)
         {
-            using (var messageBox = new DarkMessageBox(message, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
+            using (var messageBox = new DarkMessageBox(options.Message, options.Caption, DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
             }
         }
 
-        public void RevealInExplorer(string path)
+        public void RevealInExplorer(MessageBoxOptions options)
         {
-            Utils.RevealInExplorer(path);
+            Utils.RevealInExplorer(options.Message);
         }
 
-        public void OpenUrl(string url)
+        public void OpenUrl(MessageBoxOptions options)
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = url,
+                FileName = options.Message,
                 UseShellExecute = true
             });
         }

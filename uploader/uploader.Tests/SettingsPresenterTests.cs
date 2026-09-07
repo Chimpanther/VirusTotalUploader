@@ -92,7 +92,7 @@ namespace uploader.Tests
                 s.DirectUpload == false
             )), Times.Once);
 
-            _mockView.Verify(v => v.ShowSuccessMessage("Settings saved successfully."), Times.Once);
+            _mockView.Verify(v => v.ShowSuccessMessage(It.Is<MessageBoxOptions>(o => o.Message == "Settings saved successfully." && o.Caption == "Ok")), Times.Once);
             _mockView.Verify(v => v.RestartApplication(), Times.Once);
         }
 
@@ -101,7 +101,7 @@ namespace uploader.Tests
         {
             _presenter.GetApiKey();
 
-            _mockView.Verify(v => v.OpenUrl("https://developers.virustotal.com/reference"), Times.Once);
+            _mockView.Verify(v => v.OpenUrl(It.Is<MessageBoxOptions>(o => o.Message == "https://developers.virustotal.com/reference")), Times.Once);
         }
     }
 }
