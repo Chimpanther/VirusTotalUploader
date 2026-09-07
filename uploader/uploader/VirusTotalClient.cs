@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -80,7 +80,7 @@ namespace uploader
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _apiKey);
 
-            string fileSha256 = (!job.IsFolder && fullPath == job.InitialPath && !string.IsNullOrEmpty(job.CachedSha256)) ? job.CachedSha256 : Utils.GetSHA256(fullPath);
+            string fileSha256 = (!job.IsFolder && fullPath == job.InitialPath && !string.IsNullOrEmpty(job.CachedSha256)) ? job.CachedSha256 : await Utils.GetSHA256Async(fullPath);
             reportRequest.AddParameter("resource", fileSha256);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token);

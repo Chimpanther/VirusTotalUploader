@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -132,7 +132,7 @@ private void StartUploadThread()
             Task.Run(async () => await UploadAsync(token));
         }
 
-        private void UploadForm_Load(object sender, EventArgs e)
+        private async void UploadForm_Load(object sender, EventArgs e)
         {
             if (_isFolder)
             {
@@ -140,7 +140,7 @@ private void StartUploadThread()
             }
             else
             {
-                _cachedSha256 = Utils.GetSHA256(_path);
+                _cachedSha256 = await Utils.GetSHA256Async(_path);
                 sha2Textbox.Text = _cachedSha256;
             }
 
