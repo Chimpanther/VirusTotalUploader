@@ -83,7 +83,8 @@ namespace uploader
 
         public static string GetSHA256(string file)
         {
-            using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            var rootedPath = RequireRooted(file);
+            using (var stream = new FileStream(rootedPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var sha = SHA256.Create())
             {
                 var checksum = sha.ComputeHash(stream);
@@ -91,9 +92,10 @@ namespace uploader
             }
         }
 
-        public static async Task<string> GetSHA256Async(string file)
+        public static async System.Threading.Tasks.Task<string> GetSHA256Async(string file)
         {
-            using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 8192, FileOptions.Asynchronous))
+            var rootedPath = RequireRooted(file);
+            using (var stream = new FileStream(rootedPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 8192, FileOptions.Asynchronous))
             using (var sha = SHA256.Create())
             {
                 byte[] buffer = new byte[8192];
