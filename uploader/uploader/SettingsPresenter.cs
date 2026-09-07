@@ -56,7 +56,7 @@ namespace uploader
         private readonly ISettingsManager _settingsManager;
         private readonly ILocalizationHelper _localizationHelper;
 
-        public SettingsPresenter(ISettingsView view, ISettingsManager? settingsManager = null, ILocalizationHelper? localizationHelper = null)
+        public SettingsPresenter(ISettingsView view, ISettingsManager settingsManager = null, ILocalizationHelper localizationHelper = null)
         {
             _view = view;
             _settingsManager = settingsManager ?? new DefaultSettingsManager();
