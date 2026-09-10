@@ -17,8 +17,8 @@ namespace uploader.Tests
         public LocalizationHelperTests()
         {
             _originalCurrentDirectory = Environment.CurrentDirectory;
-            _testDirectory = Path.Combine(Path.GetTempPath(), "vtu-localization-" + Guid.NewGuid());
-            Directory.CreateDirectory(_testDirectory);
+            _testDirectory = Directory.CreateTempSubdirectory("vtu-localization-").FullName;
+            Directory.CreateDirectory(Path.Combine(_testDirectory, "local"));
             Environment.CurrentDirectory = _testDirectory;
 
             SettingsManager.ClearCache();
@@ -27,7 +27,7 @@ namespace uploader.Tests
                 throw new InvalidOperationException("Settings path must be rooted");
             _settingsFile = file;
             _settingsExisted = File.Exists(_settingsFile);
-            _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
+            _settingsBackup = _settingsExisted ? Convert.ToBase64String(File.ReadAllBytes(_settingsFile)) : string.Empty;
             LocalizationHelper.Base = null!;
         }
 
@@ -41,7 +41,7 @@ namespace uploader.Tests
 
             if (_settingsExisted)
             {
-                File.WriteAllText(file, _settingsBackup);
+                File.WriteAllBytes(file, Convert.FromBase64String(_settingsBackup));
             }
             else if (File.Exists(file))
             {
@@ -49,6 +49,7 @@ namespace uploader.Tests
             }
 
             LocalizationHelper.Base = null!;
+            SettingsManager.ClearCache();
             if (Directory.Exists(_testDirectory))
             {
                 Directory.Delete(_testDirectory, true);
@@ -58,6 +59,8 @@ namespace uploader.Tests
         [Fact]
         public void GetLanguages_DirectoryDoesNotExist_ReturnsArrayWithEmptyString()
         {
+            Directory.Delete(Path.Combine(_testDirectory, "local"), true);
+
             var languages = LocalizationHelper.GetLanguages();
 
             Assert.NotNull(languages);
@@ -68,8 +71,6 @@ namespace uploader.Tests
         [Fact]
         public void GetLanguages_DirectoryExistsButEmpty_ReturnsEmptyArray()
         {
-            Directory.CreateDirectory("local");
-
             var languages = LocalizationHelper.GetLanguages();
 
             Assert.NotNull(languages);
@@ -79,7 +80,6 @@ namespace uploader.Tests
         [Fact]
         public void GetLanguages_DirectoryHasFiles_ReturnsFilePaths()
         {
-            Directory.CreateDirectory("local");
             var file1 = Path.Combine("local", "en.json");
             var file2 = Path.Combine("local", "fr.json");
             File.WriteAllText(file1, "{}");
@@ -96,7 +96,7 @@ namespace uploader.Tests
         [Fact]
         public void Load_ValidJson_SetsBaseProperty()
         {
-            var languageFile = Path.Combine(_testDirectory, "language.json");
+            var languageFile = Path.Combine("local", "language.json");
             File.WriteAllText(languageFile, "{\"MainForm_More\":\"Test More\"}");
 
             LocalizationHelper.Load(languageFile);
@@ -108,7 +108,7 @@ namespace uploader.Tests
         [Fact]
         public void Load_EmptyFile_SetsBaseToNull()
         {
-            var languageFile = Path.Combine(_testDirectory, "empty.json");
+            var languageFile = Path.Combine("local", "empty.json");
             File.WriteAllText(languageFile, "");
 
             LocalizationHelper.Load(languageFile);
@@ -119,7 +119,7 @@ namespace uploader.Tests
         [Fact]
         public void Load_InvalidJson_ThrowsJsonReaderException()
         {
-            var languageFile = Path.Combine(_testDirectory, "invalid.json");
+            var languageFile = Path.Combine("local", "invalid.json");
             File.WriteAllText(languageFile, "not valid json");
 
             Assert.Throws<JsonReaderException>(() => LocalizationHelper.Load(languageFile));
@@ -128,20 +128,28 @@ namespace uploader.Tests
         [Fact]
         public void Load_MissingFile_ThrowsFileNotFoundException()
         {
-            var languageFile = Path.Combine(_testDirectory, "missing.json");
+            var languageFile = Path.Combine("local", "missing.json");
 
             Assert.Throws<FileNotFoundException>(() => LocalizationHelper.Load(languageFile));
         }
 
         [Fact]
+        public void Load_PathTraversal_ThrowsUnauthorizedAccessException()
+        {
+            var languageFile = Path.Combine("local", "..", "secrets.json");
+            Assert.Throws<UnauthorizedAccessException>(() => LocalizationHelper.Load(languageFile));
+        }
+
+        [Fact]
         public void Update_WithLanguageSettings_LoadsLanguage()
         {
-            var languageFile = Path.Combine(_testDirectory, "configured.json");
+            var languageFile = Path.Combine("local", "configured.json");
             File.WriteAllText(languageFile, "{\"MainForm_More\":\"Configured More\"}");
             var file = Utils.RequireRooted(_settingsFile);
             if (!Path.IsPathRooted(file))
                 throw new InvalidOperationException("Settings path must be rooted");
             File.WriteAllText(file, JsonConvert.SerializeObject(new Settings { Language = languageFile }));
+            SettingsManager.ClearCache();
 
             LocalizationHelper.Update();
 
@@ -156,11 +164,59 @@ namespace uploader.Tests
             if (!Path.IsPathRooted(file))
                 throw new InvalidOperationException("Settings path must be rooted");
             File.WriteAllText(file, JsonConvert.SerializeObject(new Settings()));
+            SettingsManager.ClearCache();
 
             LocalizationHelper.Update();
 
             Assert.NotNull(LocalizationHelper.Base);
             Assert.Equal("More", LocalizationHelper.Base.MainForm_More);
+        }
+
+        [Fact]
+        public void Update_WithInvalidLanguagePath_Throws()
+        {
+            var languageFile = Path.Combine("local", "nonexistent.json");
+            File.WriteAllText(_settingsFile, JsonConvert.SerializeObject(new Settings { Language = languageFile }));
+            SettingsManager.ClearCache();
+
+            Assert.Throws<FileNotFoundException>(() => LocalizationHelper.Update());
+        }
+
+        [Fact]
+        public void Load_RelativeTraversalStillInsideLocal_Succeeds()
+        {
+            Directory.CreateDirectory(Path.Combine("local", "subdir"));
+            var languageFile = Path.Combine("local", "subdir", "..", "inside.json");
+            File.WriteAllText(Path.Combine("local", "inside.json"), "{\"MainForm_More\":\"Inside\"}");
+
+            LocalizationHelper.Load(languageFile);
+
+            Assert.NotNull(LocalizationHelper.Base);
+            Assert.Equal("Inside", LocalizationHelper.Base.MainForm_More);
+        }
+
+        [Fact]
+        public void Load_EscapeViaParentThenLocal_ThrowsUnauthorizedAccessException()
+        {
+            // Resolves outside local/ (to cwd/secrets.json)
+            var languageFile = Path.Combine("local", "..", "local", "..", "secrets.json");
+            Assert.Throws<UnauthorizedAccessException>(() => LocalizationHelper.Load(languageFile));
+        }
+
+        [Fact]
+        public void Load_SiblingPrefixDirectory_ThrowsUnauthorizedAccessException()
+        {
+            Directory.CreateDirectory("local_evil");
+            var evil = Path.Combine("local_evil", "x.json");
+            File.WriteAllText(evil, "{}");
+            Assert.Throws<UnauthorizedAccessException>(() => LocalizationHelper.Load(evil));
+        }
+
+        [Fact]
+        public void IsPathStrictlyUnderLocalFolder_RejectsLocalRootItself()
+        {
+            var root = Path.GetFullPath("local");
+            Assert.False(LocalizationHelper.IsPathStrictlyUnderLocalFolder(root));
         }
 
         [Fact]

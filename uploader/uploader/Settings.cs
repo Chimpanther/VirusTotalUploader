@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace uploader
 {
@@ -7,5 +7,15 @@ namespace uploader
         public string ApiKey = "";
         public string Language = "";
         public bool DirectUpload = false;
+
+        public Settings Clone()
+        {
+            return new Settings
+            {
+                ApiKey = this.ApiKey,
+                Language = this.Language,
+                DirectUpload = this.DirectUpload
+            };
+        }
     }
 }

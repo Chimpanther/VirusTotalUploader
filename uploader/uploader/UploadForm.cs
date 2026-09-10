@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+using System;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DarkUI.Forms;
-using Microsoft.CSharp.RuntimeBinder;
-using Newtonsoft.Json;
-using RestSharp;
 
 namespace uploader
 {
@@ -69,7 +62,7 @@ namespace uploader
             });
         }
 
-        private async Task UploadAsync(CancellationToken token)
+        private bool ValidateApiKey()
         {
             if (string.IsNullOrEmpty(_settings.ApiKey))
             {
@@ -80,7 +73,7 @@ namespace uploader
                         messageBox.ShowDialog();
                     }
                 });
-                return;
+                return false;
             }
 
             if (_settings.ApiKey.Length != 64)
@@ -92,6 +85,16 @@ namespace uploader
                         messageBox.ShowDialog();
                     }
                 });
+                return false;
+            }
+
+            return true;
+        }
+
+        private async Task UploadAsync(CancellationToken token)
+        {
+            if (!ValidateApiKey())
+            {
                 return;
             }
 
@@ -114,7 +117,7 @@ namespace uploader
             Finish(true);
         }
 
-private void StartUploadThread()
+        private void StartUploadThread()
         {
             if (_cancellationTokenSource != null)
             {
@@ -132,25 +135,54 @@ private void StartUploadThread()
             Task.Run(async () => await UploadAsync(token));
         }
 
-        private void UploadForm_Load(object sender, EventArgs e)
+        private async void UploadForm_Load(object sender, EventArgs e)
         {
-            if (_isFolder)
+            try
             {
-                sha2Textbox.Text = "N/A (Folder)";
-            }
-            else
-            {
-                _cachedSha256 = Utils.GetSHA256(_path);
-                sha2Textbox.Text = _cachedSha256;
-            }
+                if (LocalizationHelper.Base == null)
+                    LocalizationHelper.Update();
 
-            settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
-            uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
-            statusLabel.Text = LocalizationHelper.Base.Message_Idle;
+                settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
+                uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
+                statusLabel.Text = LocalizationHelper.Base.Message_Idle;
 
-            if (_settings.DirectUpload)
+                bool hashReady = _isFolder;
+                if (_isFolder)
+                {
+                    sha2Textbox.Text = "N/A (Folder)";
+                }
+                else
+                {
+                    sha2Textbox.Text = "Calculating...";
+                    uploadButton.Enabled = false;
+                    try
+                    {
+                        _cachedSha256 = await Utils.GetSHA256Async(_path);
+                        sha2Textbox.Text = _cachedSha256;
+                        hashReady = !string.IsNullOrEmpty(_cachedSha256);
+                    }
+                    catch (Exception ex)
+                    {
+                        sha2Textbox.Text = "Error";
+                        DisplayError(ex.Message);
+                        hashReady = false;
+                    }
+                    finally
+                    {
+                        uploadButton.Enabled = true;
+                    }
+                }
+
+                // Do not auto-start upload when hashing failed (avoids a second silent failure).
+                if (_settings.DirectUpload && hashReady)
+                {
+                    StartUploadThread();
+                }
+            }
+            catch (Exception ex)
             {
-                StartUploadThread();
+                System.Diagnostics.Debug.WriteLine($"UploadForm_Load failed: {ex}");
+                try { DisplayError(ex.Message); } catch { /* last resort */ }
             }
         }
 

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using DarkUI.Forms;
 
@@ -48,13 +44,17 @@ namespace uploader
         {
             var settings = SettingsManager.LoadSettings();
 
-            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files == null || files.Length == 0)
+                return;
+
             foreach (var file in files)
             {
                 var uploadForm = new UploadForm(this, settings, true, file);
                 uploadForm.Show();
-                this.Hide();
             }
+
+            this.Hide();
         }
 
         private void MainForm_Shown(object sender, EventArgs e)
