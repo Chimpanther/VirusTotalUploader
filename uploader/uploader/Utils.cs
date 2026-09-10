@@ -2,15 +2,22 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 
 namespace uploader
 {
     public static class Utils
     {
+        internal static Action<System.Diagnostics.ProcessStartInfo> ProcessStarter =
+            psi => System.Diagnostics.Process.Start(psi);
+
         public static string RequireRooted(string path)
         {
             if (path == null)
                 throw new ArgumentNullException(nameof(path));
+
+            if (path.Length == 0)
+                throw new ArgumentException("Path must be rooted", nameof(path));
 
             var fullPath = Path.GetFullPath(path);
             if (!Path.IsPathRooted(path))
@@ -25,7 +32,7 @@ namespace uploader
             var pidl = ILCreateFromPathW(file);
             if (pidl == IntPtr.Zero)
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                ProcessStarter(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "explorer.exe",
                     UseShellExecute = true
@@ -69,7 +76,7 @@ namespace uploader
                         FileName = uri.AbsoluteUri,
                         UseShellExecute = true
                     };
-                    System.Diagnostics.Process.Start(psi);
+                    ProcessStarter(psi);
                 }
                 catch (Exception ex)
                 {
@@ -82,10 +89,29 @@ namespace uploader
 
         public static string GetSHA256(string file)
         {
-            using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            var rootedPath = RequireRooted(file);
+            using (var stream = new FileStream(rootedPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var sha = SHA256.Create())
             {
                 var checksum = sha.ComputeHash(stream);
+                return BitConverter.ToString(checksum).Replace("-", string.Empty);
+            }
+        }
+
+        public static async Task<string> GetSHA256Async(string file)
+        {
+            var rootedPath = RequireRooted(file);
+            using (var stream = new FileStream(rootedPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 8192, FileOptions.Asynchronous))
+            using (var sha = SHA256.Create())
+            {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
+                {
+                    sha.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+                }
+                sha.TransformFinalBlock(buffer, 0, 0);
+                var checksum = sha.Hash ?? Array.Empty<byte>();
                 return BitConverter.ToString(checksum).Replace("-", string.Empty);
             }
         }

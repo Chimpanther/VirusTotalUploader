@@ -8,7 +8,7 @@ namespace uploader
     {
         private const string LocalFolder = "local";
         public static LocalizationBase Base;
-        
+
         public static string[] GetLanguages()
         {
             return Directory.Exists(LocalFolder) ? Directory.GetFiles(LocalFolder) : new []{ "" };
@@ -16,9 +16,21 @@ namespace uploader
 
         public static void Load(string path)
         {
-            var fullPath = Utils.RequireRooted(path);
-            if (!Path.IsPathRooted(fullPath))
-                throw new ArgumentException("Path must be rooted", nameof(path));
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentException("Path must not be empty", nameof(path));
+
+            var localRoot = Path.GetFullPath(LocalFolder);
+            if (!localRoot.EndsWith(Path.DirectorySeparatorChar.ToString()) &&
+                !localRoot.EndsWith(Path.AltDirectorySeparatorChar.ToString()))
+            {
+                localRoot += Path.DirectorySeparatorChar;
+            }
+
+            var fullPath = Path.GetFullPath(path);
+            if (!fullPath.StartsWith(localRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException("Language file must be under the local folder.");
+            }
 
             var context = File.ReadAllText(fullPath);
             Base = JsonConvert.DeserializeObject<LocalizationBase>(context);

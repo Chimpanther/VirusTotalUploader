@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -22,6 +21,9 @@ namespace uploader
     public class VirusTotalClient
 
     {
+        private const string VirusTotalUrl = "https://www.virustotal.com";
+        private const int MaxConcurrentUploads = 4;
+
         private readonly string _apiKey;
         private readonly RestClient _client;
         public Action<string> OnStatusChanged { get; set; }
@@ -30,7 +32,7 @@ namespace uploader
         public VirusTotalClient(string apiKey)
         {
             _apiKey = apiKey;
-            _client = new RestClient("https://www.virustotal.com");
+            _client = new RestClient(VirusTotalUrl);
         }
 
         public async Task UploadAsync(UploadJob job, CancellationToken token)
@@ -45,13 +47,23 @@ namespace uploader
                 filesToUpload = new List<string> { job.InitialPath };
             }
 
-            var tasks = new List<Task>();
-            foreach (var file in filesToUpload)
+            using (var throttler = new SemaphoreSlim(MaxConcurrentUploads))
             {
-                tasks.Add(UploadFileAsync(file, job, token));
-            }
+                var tasks = filesToUpload.Select(async file =>
+                {
+                    await throttler.WaitAsync(token).ConfigureAwait(false);
+                    try
+                    {
+                        await UploadFileAsync(file, job, token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        throttler.Release();
+                    }
+                }).ToList();
 
-            await Task.WhenAll(tasks);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
         }
 
         private async Task UploadFileAsync(string fullPath, UploadJob job, CancellationToken token)
@@ -67,11 +79,11 @@ namespace uploader
             var fileName = Path.GetFileName(fullPath);
             OnStatusChanged?.Invoke($"Checking {fileName}...");
 
-            bool hasReport = await CheckFileReportAsync(fullPath, job, token);
+            bool hasReport = await CheckFileReportAsync(fullPath, job, token).ConfigureAwait(false);
 
             if (!hasReport)
             {
-                await ScanFileAsync(fullPath, fileName, token);
+                await ScanFileAsync(fullPath, fileName, token).ConfigureAwait(false);
             }
         }
 
@@ -80,10 +92,12 @@ namespace uploader
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _apiKey);
 
-            string fileSha256 = (!job.IsFolder && fullPath == job.InitialPath && !string.IsNullOrEmpty(job.CachedSha256)) ? job.CachedSha256 : Utils.GetSHA256(fullPath);
+            string fileSha256 = (!job.IsFolder && fullPath == job.InitialPath && !string.IsNullOrEmpty(job.CachedSha256))
+                ? job.CachedSha256
+                : await Utils.GetSHA256Async(fullPath).ConfigureAwait(false);
             reportRequest.AddParameter("resource", fileSha256);
 
-            var reportResponse = await _client.ExecuteAsync(reportRequest, token);
+            var reportResponse = await _client.ExecuteAsync(reportRequest, token).ConfigureAwait(false);
             var reportContent = reportResponse.Content;
 
             token.ThrowIfCancellationRequested();
@@ -109,7 +123,7 @@ namespace uploader
             scanRequest.AddParameter("apikey", _apiKey);
             scanRequest.AddFile("file", fullPath);
 
-            var scanResponse = await _client.ExecuteAsync(scanRequest, token);
+            var scanResponse = await _client.ExecuteAsync(scanRequest, token).ConfigureAwait(false);
             var scanContent = scanResponse.Content;
 
             token.ThrowIfCancellationRequested();
@@ -121,7 +135,7 @@ namespace uploader
                 string sha256 = scanJson.sha256.ToString();
                 string scanId = scanJson.scan_id.ToString();
 
-                var scanLink = $"https://www.virustotal.com/gui/file/{sha256}/detection/{scanId}";
+                var scanLink = $"{VirusTotalUrl}/gui/file/{sha256}/detection/{scanId}";
                 Utils.OpenUrlSafe(scanLink);
             }
             catch (Exception ex)

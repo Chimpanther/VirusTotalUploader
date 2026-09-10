@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using Newtonsoft.Json;
 
 namespace uploader
@@ -27,10 +29,7 @@ namespace uploader
             if (!Path.IsPathRooted(file))
                 throw new InvalidOperationException("Settings path must be rooted");
 
-            if (File.Exists(file))
-                File.Delete(file);
-
-            File.WriteAllText(file, serialized);
+            WriteSettingsContent(file, serialized);
 
             lock (_cacheLock)
             {
@@ -46,7 +45,7 @@ namespace uploader
             {
                 if (_cachedSettings != null)
                 {
-                    return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+                    return _cachedSettings.Clone();
                 }
 
                 var file = Utils.RequireRooted(GetSettingsFilename());
@@ -56,12 +55,49 @@ namespace uploader
                 if (!File.Exists(file))
                 {
                     _cachedSettings = new Settings();
-                    return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+                    return _cachedSettings.Clone();
                 }
 
-                var context = File.ReadAllText(file);
+                var context = ReadSettingsContent(file);
                 _cachedSettings = JsonConvert.DeserializeObject<Settings>(context) ?? new Settings();
-                return JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(_cachedSettings)) ?? new Settings();
+                return _cachedSettings.Clone();
+            }
+        }
+
+        private static void WriteSettingsContent(string file, string serialized)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(serialized);
+            try
+            {
+                byte[] encrypted = ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+                File.WriteAllBytes(file, encrypted);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                // Non-Windows / unsupported runtimes keep plaintext so settings still work in CI tests.
+                File.WriteAllText(file, serialized);
+            }
+        }
+
+        private static string ReadSettingsContent(string file)
+        {
+            byte[] raw = File.ReadAllBytes(file);
+            if (raw.Length == 0)
+                return "{}";
+
+            try
+            {
+                byte[] decrypted = ProtectedData.Unprotect(raw, null, DataProtectionScope.CurrentUser);
+                return Encoding.UTF8.GetString(decrypted);
+            }
+            catch (CryptographicException)
+            {
+                // Legacy plaintext settings written before DPAPI encryption.
+                return Encoding.UTF8.GetString(raw);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                return Encoding.UTF8.GetString(raw);
             }
         }
 
