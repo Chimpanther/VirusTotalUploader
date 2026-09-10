@@ -117,14 +117,9 @@ namespace uploader
 
         private static bool LooksLikeJsonObject(byte[] raw)
         {
-            for (int i = 0; i < raw.Length; i++)
-            {
-                byte b = raw[i];
-                if (b == (byte)' ' || b == (byte)'\t' || b == (byte)'\r' || b == (byte)'\n')
-                    continue;
-                return b == (byte)'{';
-            }
-            return false;
+            // Trim leading whitespace, then require a JSON object opener.
+            var text = Encoding.UTF8.GetString(raw).TrimStart();
+            return text.StartsWith("{", StringComparison.Ordinal);
         }
 
         public static void ClearCache()
