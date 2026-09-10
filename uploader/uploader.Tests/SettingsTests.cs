@@ -26,8 +26,7 @@ namespace uploader.Tests
             _settingsBackup = _settingsExisted ? Convert.ToBase64String(File.ReadAllBytes(_settingsFile)) : string.Empty;
             _localizationBackup = LocalizationHelper.Base;
             _originalCurrentDirectory = Environment.CurrentDirectory;
-            _testDirectory = Path.Combine(Path.GetTempPath(), "vtu-settings-" + Guid.NewGuid());
-            Directory.CreateDirectory(_testDirectory);
+            _testDirectory = Directory.CreateTempSubdirectory("vtu-settings-").FullName;
             Directory.CreateDirectory(Path.Combine(_testDirectory, "local"));
             Environment.CurrentDirectory = _testDirectory;
 

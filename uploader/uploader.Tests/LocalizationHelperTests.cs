@@ -17,8 +17,7 @@ namespace uploader.Tests
         public LocalizationHelperTests()
         {
             _originalCurrentDirectory = Environment.CurrentDirectory;
-            _testDirectory = Path.Combine(Path.GetTempPath(), "vtu-localization-" + Guid.NewGuid());
-            Directory.CreateDirectory(_testDirectory);
+            _testDirectory = Directory.CreateTempSubdirectory("vtu-localization-").FullName;
             Directory.CreateDirectory(Path.Combine(_testDirectory, "local"));
             Environment.CurrentDirectory = _testDirectory;
 
