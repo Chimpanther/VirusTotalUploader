@@ -14,26 +14,43 @@ namespace uploader
             return Directory.Exists(LocalFolder) ? Directory.GetFiles(LocalFolder) : new []{ "" };
         }
 
+        /// <summary>
+        /// Resolves <paramref name="path"/> and ensures the final path is strictly under
+        /// the <c>local</c> directory (after GetFullPath normalization). Rejects
+        /// prefix tricks like <c>local_evil</c> via a trailing-separator root check.
+        /// </summary>
         public static void Load(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
                 throw new ArgumentException("Path must not be empty", nameof(path));
 
-            var localRoot = Path.GetFullPath(LocalFolder);
-            if (!localRoot.EndsWith(Path.DirectorySeparatorChar.ToString()) &&
-                !localRoot.EndsWith(Path.AltDirectorySeparatorChar.ToString()))
-            {
-                localRoot += Path.DirectorySeparatorChar;
-            }
-
             var fullPath = Path.GetFullPath(path);
-            if (!fullPath.StartsWith(localRoot, StringComparison.OrdinalIgnoreCase))
+            if (!IsPathStrictlyUnderLocalFolder(fullPath))
             {
                 throw new UnauthorizedAccessException("Language file must be under the local folder.");
             }
 
             var context = File.ReadAllText(fullPath);
             Base = JsonConvert.DeserializeObject<LocalizationBase>(context);
+        }
+
+        internal static bool IsPathStrictlyUnderLocalFolder(string candidateFullPath)
+        {
+            if (string.IsNullOrWhiteSpace(candidateFullPath))
+                return false;
+
+            // Normalize both sides the same way (separators, .. segments, mixed slashes).
+            var localRoot = Path.GetFullPath(LocalFolder);
+            localRoot = localRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                        + Path.DirectorySeparatorChar;
+
+            var fullPath = Path.GetFullPath(candidateFullPath);
+
+            // Must be a path strictly inside local/ (not the directory itself, not a sibling prefix).
+            if (fullPath.Length <= localRoot.Length)
+                return false;
+
+            return fullPath.StartsWith(localRoot, StringComparison.OrdinalIgnoreCase);
         }
 
         public static void Update()

@@ -47,7 +47,8 @@ namespace uploader
                 filesToUpload = new List<string> { job.InitialPath };
             }
 
-            using (var throttler = new SemaphoreSlim(MaxConcurrentUploads))
+            var throttler = new SemaphoreSlim(MaxConcurrentUploads);
+            try
             {
                 var tasks = filesToUpload.Select(async file =>
                 {
@@ -63,6 +64,10 @@ namespace uploader
                 }).ToList();
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+            finally
+            {
+                throttler.Dispose();
             }
         }
 
@@ -98,6 +103,13 @@ namespace uploader
             reportRequest.AddParameter("resource", fileSha256);
 
             var reportResponse = await _client.ExecuteAsync(reportRequest, token).ConfigureAwait(false);
+
+            if (!reportResponse.IsSuccessful || string.IsNullOrEmpty(reportResponse.Content))
+            {
+                OnError?.Invoke($"API request failed: {reportResponse.StatusCode} - {reportResponse.ErrorMessage}");
+                return false;
+            }
+
             var reportContent = reportResponse.Content;
 
             token.ThrowIfCancellationRequested();
@@ -114,6 +126,10 @@ namespace uploader
             {
                 return false;
             }
+            catch (NullReferenceException)
+            {
+                return false;
+            }
         }
 
         private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
@@ -124,6 +140,13 @@ namespace uploader
             scanRequest.AddFile("file", fullPath);
 
             var scanResponse = await _client.ExecuteAsync(scanRequest, token).ConfigureAwait(false);
+
+            if (!scanResponse.IsSuccessful || string.IsNullOrEmpty(scanResponse.Content))
+            {
+                OnError?.Invoke($"Upload failed: {scanResponse.StatusCode} - {scanResponse.ErrorMessage}");
+                return;
+            }
+
             var scanContent = scanResponse.Content;
 
             token.ThrowIfCancellationRequested();

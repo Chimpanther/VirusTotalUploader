@@ -183,6 +183,43 @@ namespace uploader.Tests
         }
 
         [Fact]
+        public void Load_RelativeTraversalStillInsideLocal_Succeeds()
+        {
+            Directory.CreateDirectory(Path.Combine("local", "subdir"));
+            var languageFile = Path.Combine("local", "subdir", "..", "inside.json");
+            File.WriteAllText(Path.Combine("local", "inside.json"), "{\"MainForm_More\":\"Inside\"}");
+
+            LocalizationHelper.Load(languageFile);
+
+            Assert.NotNull(LocalizationHelper.Base);
+            Assert.Equal("Inside", LocalizationHelper.Base.MainForm_More);
+        }
+
+        [Fact]
+        public void Load_EscapeViaParentThenLocal_ThrowsUnauthorizedAccessException()
+        {
+            // Resolves outside local/ (to cwd/secrets.json)
+            var languageFile = Path.Combine("local", "..", "local", "..", "secrets.json");
+            Assert.Throws<UnauthorizedAccessException>(() => LocalizationHelper.Load(languageFile));
+        }
+
+        [Fact]
+        public void Load_SiblingPrefixDirectory_ThrowsUnauthorizedAccessException()
+        {
+            Directory.CreateDirectory("local_evil");
+            var evil = Path.Combine("local_evil", "x.json");
+            File.WriteAllText(evil, "{}");
+            Assert.Throws<UnauthorizedAccessException>(() => LocalizationHelper.Load(evil));
+        }
+
+        [Fact]
+        public void IsPathStrictlyUnderLocalFolder_RejectsLocalRootItself()
+        {
+            var root = Path.GetFullPath("local");
+            Assert.False(LocalizationHelper.IsPathStrictlyUnderLocalFolder(root));
+        }
+
+        [Fact]
         public void Export_CreatesJsonFileWithDefaultValues()
         {
             LocalizationHelper.Export();

@@ -137,37 +137,52 @@ namespace uploader
 
         private async void UploadForm_Load(object sender, EventArgs e)
         {
-            settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
-            uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
-            statusLabel.Text = LocalizationHelper.Base.Message_Idle;
+            try
+            {
+                if (LocalizationHelper.Base == null)
+                    LocalizationHelper.Update();
 
-            if (_isFolder)
-            {
-                sha2Textbox.Text = "N/A (Folder)";
-            }
-            else
-            {
-                sha2Textbox.Text = "Calculating...";
-                uploadButton.Enabled = false;
-                try
-                {
-                    _cachedSha256 = await Utils.GetSHA256Async(_path);
-                    sha2Textbox.Text = _cachedSha256;
-                }
-                catch (Exception ex)
-                {
-                    sha2Textbox.Text = "Error";
-                    DisplayError(ex.Message);
-                }
-                finally
-                {
-                    uploadButton.Enabled = true;
-                }
-            }
+                settingsGroup.Text = LocalizationHelper.Base.UploadForm_Info;
+                uploadButton.Text = LocalizationHelper.Base.UploadForm_Upload;
+                statusLabel.Text = LocalizationHelper.Base.Message_Idle;
 
-            if (_settings.DirectUpload)
+                bool hashReady = _isFolder;
+                if (_isFolder)
+                {
+                    sha2Textbox.Text = "N/A (Folder)";
+                }
+                else
+                {
+                    sha2Textbox.Text = "Calculating...";
+                    uploadButton.Enabled = false;
+                    try
+                    {
+                        _cachedSha256 = await Utils.GetSHA256Async(_path);
+                        sha2Textbox.Text = _cachedSha256;
+                        hashReady = !string.IsNullOrEmpty(_cachedSha256);
+                    }
+                    catch (Exception ex)
+                    {
+                        sha2Textbox.Text = "Error";
+                        DisplayError(ex.Message);
+                        hashReady = false;
+                    }
+                    finally
+                    {
+                        uploadButton.Enabled = true;
+                    }
+                }
+
+                // Do not auto-start upload when hashing failed (avoids a second silent failure).
+                if (_settings.DirectUpload && hashReady)
+                {
+                    StartUploadThread();
+                }
+            }
+            catch (Exception ex)
             {
-                StartUploadThread();
+                System.Diagnostics.Debug.WriteLine($"UploadForm_Load failed: {ex}");
+                try { DisplayError(ex.Message); } catch { /* last resort */ }
             }
         }
 

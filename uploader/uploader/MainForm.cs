@@ -44,17 +44,17 @@ namespace uploader
         {
             var settings = SettingsManager.LoadSettings();
 
-            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files == null || files.Length == 0)
+                return;
+
             foreach (var file in files)
             {
                 var uploadForm = new UploadForm(this, settings, true, file);
                 uploadForm.Show();
             }
 
-            if (files != null && files.Length > 0)
-            {
-                this.Hide();
-            }
+            this.Hide();
         }
 
         private void MainForm_Shown(object sender, EventArgs e)

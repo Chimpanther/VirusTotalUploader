@@ -11,6 +11,9 @@ namespace uploader
         private static Settings _cachedSettings;
         private static readonly object _cacheLock = new object();
 
+        // App-specific DPAPI entropy (defense in depth; not a secret by itself).
+        private static readonly byte[] DpapiEntropy = Encoding.UTF8.GetBytes("VirusTotalUploader.Settings.v1");
+
         public static string GetSettingsFilename()
         {
             var combined = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vtu_settings.json");
@@ -69,7 +72,7 @@ namespace uploader
             byte[] data = Encoding.UTF8.GetBytes(serialized);
             try
             {
-                byte[] encrypted = ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+                byte[] encrypted = ProtectedData.Protect(data, DpapiEntropy, DataProtectionScope.CurrentUser);
                 File.WriteAllBytes(file, encrypted);
             }
             catch (PlatformNotSupportedException)
@@ -85,20 +88,43 @@ namespace uploader
             if (raw.Length == 0)
                 return "{}";
 
+            // Prefer DPAPI with current entropy; also try null entropy for older encrypted files.
             try
             {
-                byte[] decrypted = ProtectedData.Unprotect(raw, null, DataProtectionScope.CurrentUser);
+                byte[] decrypted = ProtectedData.Unprotect(raw, DpapiEntropy, DataProtectionScope.CurrentUser);
                 return Encoding.UTF8.GetString(decrypted);
             }
             catch (CryptographicException)
             {
-                // Legacy plaintext settings written before DPAPI encryption.
-                return Encoding.UTF8.GetString(raw);
+                try
+                {
+                    byte[] decryptedLegacy = ProtectedData.Unprotect(raw, null, DataProtectionScope.CurrentUser);
+                    return Encoding.UTF8.GetString(decryptedLegacy);
+                }
+                catch (CryptographicException)
+                {
+                    // Only treat as legacy plaintext when the file looks like JSON.
+                    if (LooksLikeJsonObject(raw))
+                        return Encoding.UTF8.GetString(raw);
+                    throw;
+                }
             }
             catch (PlatformNotSupportedException)
             {
                 return Encoding.UTF8.GetString(raw);
             }
+        }
+
+        private static bool LooksLikeJsonObject(byte[] raw)
+        {
+            for (int i = 0; i < raw.Length; i++)
+            {
+                byte b = raw[i];
+                if (b == (byte)' ' || b == (byte)'\t' || b == (byte)'\r' || b == (byte)'\n')
+                    continue;
+                return b == (byte)'{';
+            }
+            return false;
         }
 
         public static void ClearCache()
