@@ -44,8 +44,8 @@ namespace uploader
         {
             var settings = SettingsManager.LoadSettings();
 
-            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            if (files == null || files.Length == 0)
+            var files = MainFormLogic.GetDroppedFiles(e.Data.GetData(DataFormats.FileDrop));
+            if (files == null)
                 return;
 
             foreach (var file in files)
@@ -61,10 +61,10 @@ namespace uploader
         {
             var settings = SettingsManager.LoadSettings();
             var args = Environment.GetCommandLineArgs();
+            var file = MainFormLogic.TryGetFileFromArgs(args);
 
-            if (args.Length == 2)
+            if (file != null)
             {
-                var file = args[1]; // Second argument because .NET puts program filename to the first
                 var uploadForm = new UploadForm(this, settings, false, file);
                 uploadForm.Show();
                 this.Hide();

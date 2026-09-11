@@ -108,7 +108,7 @@
     <Reference Include="System.Security" />
   </ItemGroup>
   <ItemGroup>
-        <Compile Include="ControlExtensions.cs" />
+    <Compile Include="ControlExtensions.cs" />
     <Compile Include="VirusTotalClient.cs" />
     <Compile Include="SettingsManager.cs" />
     <Compile Include="LocalizationBase.cs" />
@@ -164,6 +164,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Compile Include="MainFormLogic.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
