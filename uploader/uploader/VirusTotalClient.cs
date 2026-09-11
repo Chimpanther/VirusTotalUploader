@@ -91,7 +91,7 @@ namespace uploader
 
             if (!hasReport)
             {
-                await ScanFileAsync(fullPath, fileName, token).ConfigureAwait(false);
+                await ScanFileAsync(fullPath, token).ConfigureAwait(false);
             }
         }
         private string TryGetPermalink(string jsonContent)
@@ -153,8 +153,9 @@ namespace uploader
             return false;
         }
 
-        private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
+        private async Task ScanFileAsync(string fullPath, CancellationToken token)
         {
+            var fileName = Path.GetFileName(fullPath);
             OnStatusChanged?.Invoke($"Uploading {fileName}...");
             var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
             scanRequest.AddParameter("apikey", _apiKey);
