@@ -94,32 +94,30 @@ namespace uploader
                 await ScanFileAsync(fullPath, fileName, token).ConfigureAwait(false);
             }
         }
-        private bool TryGetPermalink(string jsonContent, out string permalink)
+        private string TryGetPermalink(string jsonContent)
         {
-            permalink = null;
             try
             {
                 if (string.IsNullOrWhiteSpace(jsonContent))
-                    return false;
+                    return null;
 
                 dynamic reportJson = JsonConvert.DeserializeObject(jsonContent);
                 if (reportJson == null)
-                    return false;
+                    return null;
 
-                permalink = reportJson.permalink.ToString();
-                return true;
+                return reportJson.permalink.ToString();
             }
             catch (JsonException)
             {
-                return false;
+                return null;
             }
             catch (RuntimeBinderException)
             {
-                return false;
+                return null;
             }
             catch (NullReferenceException)
             {
-                return false;
+                return null;
             }
         }
 
@@ -146,7 +144,8 @@ namespace uploader
 
             token.ThrowIfCancellationRequested();
 
-            if (TryGetPermalink(reportContent, out string reportLink))
+            string reportLink = TryGetPermalink(reportContent);
+            if (reportLink != null)
             {
                 Utils.OpenUrlSafe(reportLink);
                 return true;
