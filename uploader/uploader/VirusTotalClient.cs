@@ -28,11 +28,14 @@ namespace uploader
         private readonly RestClient _client;
         public Action<string> OnStatusChanged { get; set; }
         public Action<string> OnError { get; set; }
+        public VirusTotalClient(string apiKey) : this(apiKey, new RestClient(VirusTotalUrl))
+        {
+        }
 
-        public VirusTotalClient(string apiKey)
+        public VirusTotalClient(string apiKey, RestClient client)
         {
             _apiKey = apiKey;
-            _client = new RestClient(VirusTotalUrl);
+            _client = client;
         }
 
         public async Task UploadAsync(UploadJob job, CancellationToken token)
@@ -88,11 +91,11 @@ namespace uploader
 
             if (!hasReport)
             {
-                await ScanFileAsync(fullPath, fileName, token).ConfigureAwait(false);
+                await ScanFileAsync(fullPath, token).ConfigureAwait(false);
             }
         }
-
         private async Task<bool> CheckFileReportAsync(string fullPath, UploadJob job, CancellationToken token)
+
         {
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _apiKey);
@@ -114,26 +117,23 @@ namespace uploader
 
             token.ThrowIfCancellationRequested();
 
-            dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
-
             try
             {
+                if (string.IsNullOrWhiteSpace(reportContent)) return false;
+                dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
+                if (reportJson == null) return false;
                 var reportLink = reportJson.permalink.ToString();
                 Utils.OpenUrlSafe(reportLink);
                 return true;
             }
-            catch (RuntimeBinderException)
-            {
-                return false;
-            }
-            catch (NullReferenceException)
-            {
-                return false;
-            }
+            catch (JsonException) { return false; }
+            catch (RuntimeBinderException) { return false; }
+            catch (NullReferenceException) { return false; }
         }
 
-        private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
+        private async Task ScanFileAsync(string fullPath, CancellationToken token)
         {
+            var fileName = Path.GetFileName(fullPath);
             OnStatusChanged?.Invoke($"Uploading {fileName}...");
             var scanRequest = new RestRequest("vtapi/v2/file/scan", Method.Post);
             scanRequest.AddParameter("apikey", _apiKey);

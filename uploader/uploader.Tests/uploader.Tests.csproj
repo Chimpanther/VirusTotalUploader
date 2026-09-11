@@ -20,6 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="RestSharp" Version="112.1.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\uploader\Utils.cs" Link="Utils.cs" />
@@ -27,6 +28,7 @@
     <Compile Include="..\uploader\Settings.cs" />
     <Compile Include="..\uploader\LocalizationBase.cs" />
     <Compile Include="..\uploader\LocalizationHelper.cs" />
+    <Compile Include="..\uploader\VirusTotalClient.cs" Link="VirusTotalClient.cs" />
     <Compile Include="..\uploader\MainFormLogic.cs" Link="MainFormLogic.cs" />
   </ItemGroup>
   <ItemGroup>
