@@ -94,33 +94,6 @@ namespace uploader
                 await ScanFileAsync(fullPath, token).ConfigureAwait(false);
             }
         }
-        private string TryGetPermalink(string jsonContent)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(jsonContent))
-                    return null;
-
-                dynamic reportJson = JsonConvert.DeserializeObject(jsonContent);
-                if (reportJson == null)
-                    return null;
-
-                return reportJson.permalink.ToString();
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
-            catch (RuntimeBinderException)
-            {
-                return null;
-            }
-            catch (NullReferenceException)
-            {
-                return null;
-            }
-        }
-
         private async Task<bool> CheckFileReportAsync(string fullPath, UploadJob job, CancellationToken token)
 
         {
@@ -144,13 +117,18 @@ namespace uploader
 
             token.ThrowIfCancellationRequested();
 
-            string reportLink = TryGetPermalink(reportContent);
-            if (reportLink != null)
+            try
             {
+                if (string.IsNullOrWhiteSpace(reportContent)) return false;
+                dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
+                if (reportJson == null) return false;
+                var reportLink = reportJson.permalink.ToString();
                 Utils.OpenUrlSafe(reportLink);
                 return true;
             }
-            return false;
+            catch (JsonException) { return false; }
+            catch (RuntimeBinderException) { return false; }
+            catch (NullReferenceException) { return false; }
         }
 
         private async Task ScanFileAsync(string fullPath, CancellationToken token)
