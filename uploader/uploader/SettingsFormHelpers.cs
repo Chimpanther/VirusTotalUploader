@@ -34,8 +34,10 @@ namespace uploader
 
         public static string GetExplorerArgsForSettings()
         {
-            var file = Settings.GetSettingsFilename();
-            file = Path.GetFullPath(file);
+            var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var safeFile = Path.GetFileName(Settings.GetSettingsFilename());
+            var file = Path.Combine(baseDir, safeFile);
+
             if (!File.Exists(file))
             {
                 return string.Empty;

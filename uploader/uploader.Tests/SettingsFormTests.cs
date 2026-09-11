@@ -18,12 +18,21 @@ namespace uploader.Tests
 
         public SettingsFormTests()
         {
-            _settingsFile = Path.GetFullPath(Settings.GetSettingsFilename());
+            var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var safeFile = Path.GetFileName(Settings.GetSettingsFilename());
+            _settingsFile = Path.GetFullPath(Path.Combine(baseDir, safeFile));
+
+            if (!_settingsFile.StartsWith(Path.GetFullPath(baseDir))) throw new Exception("Invalid Path");
+
             _settingsExisted = File.Exists(_settingsFile);
             _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
             _localizationBackup = LocalizationHelper.Base;
             _originalCurrentDirectory = Environment.CurrentDirectory;
-            _testDirectory = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "vtu-settingsform-" + Guid.NewGuid()));
+
+            var tempBase = Path.GetFullPath(Path.GetTempPath());
+            var dirName = "vtu-settingsform-" + Guid.NewGuid();
+            _testDirectory = Path.GetFullPath(Path.Combine(tempBase, dirName));
+            if (!_testDirectory.StartsWith(tempBase)) throw new Exception("Invalid Path");
             Directory.CreateDirectory(_testDirectory);
             Environment.CurrentDirectory = _testDirectory;
 
@@ -35,9 +44,16 @@ namespace uploader.Tests
 
             // LocalizationHelper checks the "local" folder
             var localDir = Path.GetFullPath(Path.Combine(_testDirectory, "local"));
+            if (!localDir.StartsWith(_testDirectory)) throw new Exception("Invalid Path");
             Directory.CreateDirectory(localDir);
-            File.WriteAllText(Path.GetFullPath(Path.Combine(localDir, "TestLang.json")), "{}");
-            File.WriteAllText(Path.GetFullPath(Path.Combine(localDir, "TestLang2.json")), "{}");
+
+            var f1 = Path.GetFullPath(Path.Combine(localDir, "TestLang.json"));
+            if (!f1.StartsWith(localDir)) throw new Exception("Invalid Path");
+            File.WriteAllText(f1, "{}");
+
+            var f2 = Path.GetFullPath(Path.Combine(localDir, "TestLang2.json"));
+            if (!f2.StartsWith(localDir)) throw new Exception("Invalid Path");
+            File.WriteAllText(f2, "{}");
         }
 
         public void Dispose()
