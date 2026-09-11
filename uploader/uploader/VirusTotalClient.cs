@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -27,10 +27,10 @@ namespace uploader
         public Action<string> OnStatusChanged { get; set; }
         public Action<string> OnError { get; set; }
 
-        public VirusTotalClient(string apiKey)
+        public VirusTotalClient(string apiKey, RestClient client = null)
         {
             _apiKey = apiKey;
-            _client = new RestClient("https://www.virustotal.com");
+            _client = client ?? new RestClient("https://www.virustotal.com");
         }
 
         public async Task UploadAsync(UploadJob job, CancellationToken token)
