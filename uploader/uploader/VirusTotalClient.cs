@@ -28,11 +28,14 @@ namespace uploader
         private readonly RestClient _client;
         public Action<string> OnStatusChanged { get; set; }
         public Action<string> OnError { get; set; }
+        public VirusTotalClient(string apiKey) : this(apiKey, new RestClient(VirusTotalUrl))
+        {
+        }
 
-        public VirusTotalClient(string apiKey)
+        public VirusTotalClient(string apiKey, RestClient client)
         {
             _apiKey = apiKey;
-            _client = new RestClient(VirusTotalUrl);
+            _client = client;
         }
 
         public async Task UploadAsync(UploadJob job, CancellationToken token)
@@ -91,8 +94,37 @@ namespace uploader
                 await ScanFileAsync(fullPath, fileName, token).ConfigureAwait(false);
             }
         }
+        private bool TryGetPermalink(string jsonContent, out string permalink)
+        {
+            permalink = null;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(jsonContent))
+                    return false;
+
+                dynamic reportJson = JsonConvert.DeserializeObject(jsonContent);
+                if (reportJson == null)
+                    return false;
+
+                permalink = reportJson.permalink.ToString();
+                return true;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+            catch (RuntimeBinderException)
+            {
+                return false;
+            }
+            catch (NullReferenceException)
+            {
+                return false;
+            }
+        }
 
         private async Task<bool> CheckFileReportAsync(string fullPath, UploadJob job, CancellationToken token)
+
         {
             var reportRequest = new RestRequest("vtapi/v2/file/report", Method.Post);
             reportRequest.AddParameter("apikey", _apiKey);
@@ -114,22 +146,12 @@ namespace uploader
 
             token.ThrowIfCancellationRequested();
 
-            dynamic reportJson = JsonConvert.DeserializeObject(reportContent);
-
-            try
+            if (TryGetPermalink(reportContent, out string reportLink))
             {
-                var reportLink = reportJson.permalink.ToString();
                 Utils.OpenUrlSafe(reportLink);
                 return true;
             }
-            catch (RuntimeBinderException)
-            {
-                return false;
-            }
-            catch (NullReferenceException)
-            {
-                return false;
-            }
+            return false;
         }
 
         private async Task ScanFileAsync(string fullPath, string fileName, CancellationToken token)
