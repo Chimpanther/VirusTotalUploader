@@ -18,12 +18,12 @@ namespace uploader.Tests
 
         public SettingsFormTests()
         {
-            _settingsFile = Settings.GetSettingsFilename();
+            _settingsFile = Path.GetFullPath(Settings.GetSettingsFilename());
             _settingsExisted = File.Exists(_settingsFile);
             _settingsBackup = _settingsExisted ? File.ReadAllText(_settingsFile) : string.Empty;
             _localizationBackup = LocalizationHelper.Base;
             _originalCurrentDirectory = Environment.CurrentDirectory;
-            _testDirectory = Path.Combine(Path.GetTempPath(), "vtu-settingsform-" + Guid.NewGuid());
+            _testDirectory = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "vtu-settingsform-" + Guid.NewGuid()));
             Directory.CreateDirectory(_testDirectory);
             Environment.CurrentDirectory = _testDirectory;
 
@@ -34,10 +34,10 @@ namespace uploader.Tests
             }
 
             // LocalizationHelper checks the "local" folder
-            var localDir = Path.Combine(_testDirectory, "local");
+            var localDir = Path.GetFullPath(Path.Combine(_testDirectory, "local"));
             Directory.CreateDirectory(localDir);
-            File.WriteAllText(Path.Combine(localDir, "TestLang.json"), "{}");
-            File.WriteAllText(Path.Combine(localDir, "TestLang2.json"), "{}");
+            File.WriteAllText(Path.GetFullPath(Path.Combine(localDir, "TestLang.json")), "{}");
+            File.WriteAllText(Path.GetFullPath(Path.Combine(localDir, "TestLang2.json")), "{}");
         }
 
         public void Dispose()

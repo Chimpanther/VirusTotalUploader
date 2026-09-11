@@ -35,6 +35,7 @@ namespace uploader
         public static string GetExplorerArgsForSettings()
         {
             var file = Settings.GetSettingsFilename();
+            file = Path.GetFullPath(file);
             if (!File.Exists(file))
             {
                 return string.Empty;
