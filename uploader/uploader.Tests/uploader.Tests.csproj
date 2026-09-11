@@ -27,6 +27,7 @@
     <Compile Include="..\uploader\Settings.cs" />
     <Compile Include="..\uploader\LocalizationBase.cs" />
     <Compile Include="..\uploader\LocalizationHelper.cs" />
+    <Compile Include="..\uploader\SettingsFormHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>

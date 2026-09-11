@@ -24,23 +24,14 @@ namespace uploader
             apiTextbox.Text = settings.ApiKey;
             directCheckbox.Checked = settings.DirectUpload;
 
-            var languages = LocalizationHelper.GetLanguages();
+            var options = SettingsFormHelpers.GetLanguageOptions();
             languageCombo.Items.Clear();
-            foreach (var language in languages)
+            foreach (var option in options)
             {
-                languageCombo.Items.Add(language);
+                languageCombo.Items.Add(option);
             }
 
-            if (string.IsNullOrEmpty(settings.Language))
-            {
-                var defaultLanguage = languageCombo.Items.Add("Default (Build-in English)");
-                languageCombo.SelectedIndex = defaultLanguage;
-            }
-            else
-            {
-                var index = languageCombo.Items.IndexOf(settings.Language);
-                languageCombo.SelectedIndex = index;
-            }
+            languageCombo.SelectedIndex = SettingsFormHelpers.GetSelectedLanguageIndex(settings, options);
 
             generalGroupBox.Text = LocalizationHelper.Base.SettingsForm_General;
             apiLabel.Text = LocalizationHelper.Base.SettingsForm_Key;
@@ -70,16 +61,8 @@ namespace uploader
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            apiTextbox.Text = apiTextbox.Text.Trim();
+            SettingsFormHelpers.SaveSettings(apiTextbox.Text, languageCombo.Text, directCheckbox.Checked);
 
-            var settings = new Settings
-            {
-                ApiKey = apiTextbox.Text,
-                Language = languageCombo.Text,
-                DirectUpload = directCheckbox.Checked
-            };
-
-            Settings.SaveSettings(settings);
             using (var messageBox = new DarkMessageBox(LocalizationHelper.Base.Message_Saved, "Ok", DarkMessageBoxIcon.Information, DarkDialogButton.Ok))
             {
                 messageBox.ShowDialog();
