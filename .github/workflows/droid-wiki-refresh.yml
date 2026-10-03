@@ -15,7 +15,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Factory Droid
-        run: curl -fsSL https://app.factory.ai/cli/v1.2.3/install.sh | sh
+        run: |
+          curl -fsSL https://app.factory.ai/cli/v1.2.3/install.sh -o install.sh
+          # ACTION REQUIRED: Replace the placeholder checksum below with the actual sha256sum of install.sh
+          echo "PLACEHOLDER_SHA256_CHECKSUM_HERE install.sh" | sha256sum -c -
+          sh install.sh
 
       - name: Generate wiki
         run: droid exec --auto high "/wiki"
