@@ -11,11 +11,44 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      # Pinned Factory Droid release. The digests are the vendor-published SHA-256
+      # of each platform binary. When bumping DROID_VERSION, update both digests in
+      # the same commit so the version and its integrity check can never drift.
+      DROID_VERSION: "0.233.0"
+      DROID_SHA256_X64: "744a5c500a9422b18a7355cf8b824d5d21d4b65d2e48d74f0f1ee4b6d92f7ab8"
+      DROID_SHA256_X64_BASELINE: "824b15b892316e5e6714b8b675166278944105fd1b2959e6398d3c203a4125ac"
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Factory Droid
-        run: curl -fsSL https://app.factory.ai/cli/v1.2.3/install.sh | sh
+        run: |
+          set -euo pipefail
+
+          variant="x64"
+          if ! grep -qi avx2 /proc/cpuinfo; then
+            variant="x64-baseline"
+          fi
+
+          case "$variant" in
+            x64) expected="$DROID_SHA256_X64" ;;
+            x64-baseline) expected="$DROID_SHA256_X64_BASELINE" ;;
+            *) echo "Unsupported runner architecture: $variant" >&2; exit 1 ;;
+          esac
+
+          binary="$RUNNER_TEMP/droid"
+          url="https://downloads.factory.ai/factory-cli/releases/${DROID_VERSION}/linux/${variant}/droid"
+          curl -fsSL --retry 3 -o "$binary" "$url"
+
+          # Fail closed: abort unless the downloaded binary matches the pinned digest.
+          echo "${expected}  ${binary}" | sha256sum -c -
+
+          install_dir="$HOME/.local/bin"
+          mkdir -p "$install_dir"
+          install -m 0755 "$binary" "$install_dir/droid"
+          rm -f "$binary"
+          echo "$install_dir" >> "$GITHUB_PATH"
+          test -x "$install_dir/droid"
 
       - name: Generate wiki
         run: droid exec --auto high "/wiki"
