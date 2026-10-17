@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Repository-level instructions for Factory Droid, Codex, Claude Code, Cursor, Aider, Gemini CLI, and other coding agents working in `Chimpanther/VirusTotalUploader`.
+Repository-level instructions for Codex, Claude Code, Cursor, Aider, Gemini CLI, and other coding agents working in `Chimpanther/VirusTotalUploader`.
 
 Follow this file before planning, editing, committing, or opening a PR. When instructions conflict, the user's latest explicit chat instruction wins. Do not invent missing requirements.
 
@@ -30,9 +30,9 @@ Follow this file before planning, editing, committing, or opening a PR. When ins
 - `uploader/uploader/Localization*.cs` and `local/` runtime folder behavior - localization support.
 - `uploader/packages.config` or `uploader/uploader/packages.config` - NuGet packages for the legacy project format.
 
-## Factory Droid Operating Mode
+## Agent Operating Mode
 
-Use a conservative Factory workflow:
+Use a conservative workflow:
 
 1. Explore the repo and confirm paths before editing.
 2. State a focused plan with files to touch.
@@ -40,7 +40,7 @@ Use a conservative Factory workflow:
 4. Build/verify, or clearly explain why verification could not be run.
 5. Open a PR for Magnus/Chimpanther to review.
 
-Factory Droid should prefer explicit, copy-pasteable commands. Avoid broad autonomous rewrites, speculative modernization, or changing project format unless specifically requested.
+Agents should prefer explicit, copy-pasteable commands. Avoid broad autonomous rewrites, speculative modernization, or changing project format unless specifically requested.
 
 ## GitHub, Branching, PR, and Identity Rules
 
